@@ -35,7 +35,7 @@ internal class KasaClient: IKasaClient {
 
     private const int HeaderLength = 4;
 
-    private static readonly  ILogger        Logger         = LoggerFactory.GetLogger(typeof(KasaSmartOutlet));
+    private static readonly  ILogger        Logger         = LoggerFactory.GetLogger(typeof(KasaOutlet));
     private static readonly  ILogger        WireLogger     = LoggerFactory.GetLogger("wire");
     private static readonly  SemaphoreSlim  TcpMutex       = new(1);
     private static readonly  Encoding       Encoding       = Encoding.UTF8;
@@ -68,7 +68,7 @@ internal class KasaClient: IKasaClient {
         if (_tcpClient.Connected) {
             throw new InvalidOperationException("Already connected, go ahead and call a command method such as GetSystemInfo()");
         } else if (_disposed) {
-            throw new InvalidOperationException("Already disposed, please construct a new KasaSmartPlug instance instead");
+            throw new InvalidOperationException($"Already disposed, please construct a new {nameof(KasaOutlet)} instance instead");
         }
 
         return _tcpClient.ConnectAsync(Hostname, Port);

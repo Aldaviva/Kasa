@@ -12,7 +12,6 @@ public class LoggerFactoryResolverTest {
 
         LoggerFactoryResolver loggerFactoryResolver = new(factory);
 
-        loggerFactoryResolver.Factory.Should().BeSameAs(factory);
         loggerFactoryResolver.GetFactory().Should().BeSameAs(factory);
     }
 

@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32519.379
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kasa", "Kasa\Kasa.csproj", "{36D781F7-F8B9-473E-B49D-0A245F187393}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kasa", "Kasa\Kasa.csproj", "{36D781F7-F8B9-473E-B49D-0A245F187393}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{85B50207-3B69-4249-9676-653049A58F98}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{85B50207-3B69-4249-9676-653049A58F98}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{BD8F7E1B-F477-444B-8F26-6AEAE57C403C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample", "Sample\Sample.csproj", "{BD8F7E1B-F477-444B-8F26-6AEAE57C403C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimezoneGenerator", "TimezoneGenerator\TimezoneGenerator.csproj", "{599C181C-A93D-4486-BC3F-6B0DE80CA07A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{BD8F7E1B-F477-444B-8F26-6AEAE57C403C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD8F7E1B-F477-444B-8F26-6AEAE57C403C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD8F7E1B-F477-444B-8F26-6AEAE57C403C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{599C181C-A93D-4486-BC3F-6B0DE80CA07A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{599C181C-A93D-4486-BC3F-6B0DE80CA07A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{599C181C-A93D-4486-BC3F-6B0DE80CA07A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{599C181C-A93D-4486-BC3F-6B0DE80CA07A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

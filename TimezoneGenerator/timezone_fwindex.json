@@ -1,0 +1,150 @@
+{
+  "version" : "1.0",
+
+  "International Date Line West" : {"dst" : false, "offset" : "UTC-12:00", "index" : 0},
+  "Coordinated Universal Time-11" : {"dst" : false, "offset" : "UTC-11:00", "index" : 1},
+  "Hawaii" : {"dst" : false, "offset" : "UTC-10:00", "description": "Hawaii-Aleutian Standard Time", "index" : 2},
+
+  "Alaska" : {"dst" : true, "description" : "Alaska Standard Time", "offset" : "UTC-09:00", "index" : 3},
+  "Baja California" : {"dst" : true, "offset" : "UTC-08:00", "index" : 4},
+  "Pacific Standard Time (US & Canada)" : {"dst" : false, "offset" : "UTC-08:00", "index" : 5},
+
+  "Pacific Daylight Time (US & Canada)" : {"dst" : true, "offset" : "UTC-08:00", "index" : 6},
+  "Arizona" : {"dst" : false, "offset" : "UTC-07:00", "index" : 7},
+  "Chihuahua, La Paz, Mazatlan" : {"dst" : true, "offset" : "UTC-07:00", "description" : "Mexico", "index" : 8},
+
+  "Mountain Standard Time (US & Canada)" : {"dst" : false, "offset" : "UTC-07:00", "index" : 9},
+  "Mountain Daylight Time (US & Canada)" : {"dst" : true, "offset" : "UTC-07:00", "index" : 10},
+  "Central America" : {"dst" : false, "offset" : "UTC-06:00", "index" : 11},
+
+  "Central Standard Time (US & Canada)" : {"dst" : false, "offset" : "UTC-06:00", "index" : 12},
+  "Central Daylight Time (US & Canada)" : {"dst" : true, "offset" : "UTC-06:00", "index" : 13},
+  "Guadalajara, Mexico City, Monterrey" : {"dst" : true, "offset" : "UTC-06:00", "index" : 14},
+
+  "Saskatchewan" : {"dst" : false, "description" : "Canada", "offset" : "UTC-06:00", "index" : 15},
+  "Bogota, Lima, Quito, Rio Branco" : {"dst": false, "description":"S. America", "offset" : "UTC-05:00", "index" : 16},
+  "Eastern Standard Time (US & Canada)" : {"dst": false, "offset" : "UTC-05:00", "index" : 17},
+
+  "Eastern Daylight Time (US & Canada)" : {"dst": true, "offset" : "UTC-05:00", "index" : 18},
+  "Indiana (East)" : {"dst": true, "offset" : "UTC-05:00", "index" : 19},
+  "Caracas" : {"dst": false, "offset" : "UTC-04:30", "index" : 20},
+
+  "Asuncion" : {"dst" : true, "description" : "Paraguay South America", "offset" : "UTC-04:00", "index" : 21},
+  "Atlantic Standard Time (Canada)" : {"dst" : false, "offset" : "UTC-04:00", "index" : 22},
+  "Atlantic Daylight Time (Canada)" : {"dst" : true, "offset" : "UTC-04:00", "index" : 23},
+
+  "Cuiaba" : {"dst" : true, "description" : "Brazil | Amazon Time", "offset" : "UTC-04:00", "index" : 24},
+  "Georgetown" : {"dst" : false, "description" : "South America", "offset" : "UTC-04:00", "index" : 25},
+  "Santiago" : {"dst" : true, "description" : "Chile", "offset" : "UTC-04:00", "index" : 26},
+
+  "Newfoundland" : {"dst": true, "offset" : "UTC-03:30", "index" : 27},
+  "Brasilia" : {"dst" : true, "description" : "Brazil", "offset" : "UTC-03:00", "index" : 28},
+  "Buenos Aires" : {"dst" : false, "description" : "Argentina S. America", "offset" : "UTC-03:00", "index" : 29},
+
+  "Cayenne, Fortaleza" : {"dst" : false, "description" : "S. America", "offset" : "UTC-03:00", "index" : 30},
+  "Greenland" : {"dst" : true, "offset" : "UTC-03:00", "index" : 31},
+  "Montevideo" : {"dst" : true, "description" : "Uruguay S. America", "offset" : "UTC-03:00", "index" : 32},
+
+  "Salvador" : {"dst" : false, "description" : "Brazil", "offset" : "UTC-03:00", "index" : 33},
+  "Coordinated Universal Time-02" : {"dst" : false, "offset" : "UTC-02:00", "index" : 34},
+  "Azores" : {"dst" : true, "offset" : "UTC-01:00", "index" : 35},
+
+  "Cabo Verde Is." : {"dst" : false, "offset" : "UTC-01:00", "index" : 36},
+  "Casablanca" : {"dst" : true, "description": "Western European Standard Time", "offset" : "UTC", "index" : 37},
+  "Coordinated Universal Time" : {"dst": false, "description": "Greenwich Mean Time", "offset" : "UTC","index" : 38},
+
+  "Dublin, Edinburgh, Lisbon, London" : {"dst": true, "description" : "Greenwich Mean Time", "description_dst" : "British Summer Time", "offset" : "UTC", "offset_dst" : "UTC+01:00", "index" : 39},
+  "Monrovia, Reykjavik" : {"dst":false, "description":"Greenwich Mean Time", "offset" : "UTC", "index" : 40},
+  "Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna" : {"dst" : true, "description" : "Central European Standard Time", "description_dst" : "Central European Summer Time", "offset" : "UTC+01:00", "offset_dst" : "UTC+02:00", "index" : 41},
+
+  "Belgrade, Bratislava, Budapest, Ljubljana, Prague" : {"dst" : true, "description" : "East Central European Standard Time", "offset" : "UTC+01:00", "index" : 42},
+  "Brussels, Copenhagen, Madrid, Paris" : {"dst" : true, "description" : "West Central European Standard Time", "offset" : "UTC+01:00", "index" : 43},
+  "Sarajevo, Skopje, Warsaw, Zagreb" : {"dst" : true, "description" : "Central European Standard Time", "offset" : "UTC+01:00", "index" : 44},
+
+  "West Central Africa" : {"dst" : false, "description" : "West Africa Standard Time", "offset" : "UTC+01:00", "index" : 45},
+  "Windhoek" : {"dst" : true, "description" : "West Africa Summer Time", "offset" : "UTC+01:00", "index" : 46},
+  "Amman" : {"dst" : true, "description" : "Jordan | Eastern European Standard Time","offset" : "UTC+02:00", "index" : 47},
+
+  "Athens, Bucharest" : {"dst" : true, "description" : "Greece Romania | Eastern European Standard Time","offset" : "UTC+02:00","index" : 48},
+  "Beirut" : {"dst" : true, "description" : "Lebanon | Eastern European Standard Time", "offset" : "UTC+02:00", "index" : 49},
+  "Cairo" : {"dst" : false, "description" : "Egypt | Eastern European Time", "offset" : "UTC+02:00", "index" : 50},
+
+  "Damascus" : {"dst" : true, "description" : "Syria | Eastern European Standard Time","offset" : "UTC+02:00", "index" : 51},
+  "E. Europe" : {"dst" : true, "description" : "Eastern European Standard Time", "offset" : "UTC+02:00", "index" : 52},
+  "Harare, Pretoria" : {"dst" : false, "description" : "South Africa | Central Africa Time", "offset" : "UTC+02:00","index" : 53},
+
+  "Helsinki, Kyiv, Riga, Sofia, Tallinn, Vilnius" : {"dst" : true, "description" : "Lithuania | Eastern European Standard Time","offset" : "UTC+02:00","index" : 54},
+  "Istanbul" : {"dst" : true, "description" : "Turkey | Eastern European Standard Time","offset" : "UTC+02:00","index" : 55},
+  "Jerusalem" : {"dst" : true, "description" : "Israel Daylight Time", "offset" : "UTC+02:00", "index" : 56},
+
+  "Kaliningrad (RTZ 1)" : {"dst" : false, "description" : "Russia | Eastern European Time","offset" : "UTC+02:00", "index" : 57},
+  "Tripoli" : {"dst" : false, "description" : "Libya | Eastern European Time","offset" : "UTC+02:00", "index" : 58},
+  "Baghdad" : {"dst" : false, "description" : "Iraq Arabia Standard Time", "offset" : "UTC+03:00", "index" : 59},
+
+  "Kuwait, Riyadh" : {"dst": false, "description" : "Arabia Standard Time", "offset" : "UTC+03:00", "index" : 60},
+  "Minsk" : {"dst" : false, "description" : "Belarus Further-Eastern European Time", "offset" : "UTC+03:00", "index" : 61},
+  "Moscow, St. Petersburg, Volgograd (RTZ 2)" : {"dst":false, "description":"Moscow Standard Time", "offset" : "UTC+03:00", "index" : 62},
+
+  "Nairobi" : {"dst":false, "description" : "Kenya East Africa Time", "offset" : "UTC+03:00", "index" : 63},
+  "Tehran" : {"dst":true, "description" : "Iran Standard Time", "description_dst" : "Iran Daylight Time", "offset" : "UTC+03:30", "offset_dst" : "UTC+4:30", "index" : 64},
+  "Abu Dhabi, Muscat" : {"dst":false, "description" : "Oman", "offset" : "UTC+04:00", "index" : 65},
+
+  "Baku" : {"dst": true, "description" : "Azerbaijan", "offset" : "UTC+04:00", "index" : 66},
+  "Izhevsk, Samara (RTZ 3)" : {"dst": false, "offset" : "UTC+04:00", "index" : 67},
+  "Port Louis" : {"dst": false, "description" : "Mauritius", "offset" : "UTC+04:00", "index" : 68},
+
+  "Tbilisi" : {"dst": false, "description" : "Georgia", "offset" : "UTC+04:00", "index" : 69},
+  "Yerevan" : {"dst": false, "description" : "Armenia", "offset" : "UTC+04:00", "index" : 70},
+  "Kabul" : {"dst": false, "offset" : "UTC+04:30", "index" : 71},
+
+  "Ashgabat, Tashkent" : {"dst": false, "description" : "Turkmenistan Uzbekistan", "offset" : "UTC+05:00", "index" : 72},
+  "Ekaterinburg (RTZ 4)" : {"dst": false, "description" : "Russia", "offset" : "UTC+05:00", "index" : 73},
+  "Islamabad, Karachi" : {"dst": false, "description" : "Pakistan", "offset" : "UTC+05:00", "index" : 74},
+
+  "Chennai, Kolkata, Mumbai, New Delhi" : {"dst": false, "offset" : "UTC+05:30", "index" : 75},
+  "Sri Jayawardenepura" : {"dst": false, "offset" : "UTC+05:30", "index" : 76},
+  "Kathmandu" : {"dst": false, "offset" : "UTC+05:45", "index" : 77},
+
+  "Astana" : {"dst": false, "description" : "Kazakhstan", "offset" : "UTC+06:00", "index" : 78},
+  "Dhaka" : {"dst": false, "description" : "Bangladesh", "offset" : "UTC+06:00", "index" : 79},
+  "Novosibirsk (RTZ 5)" : {"dst": false, "offset" : "UTC+06:00", "index" : 80},
+
+  "Yangon (Rangoon)" : {"dst": false, "offset" : "UTC+06:30", "index" : 81},
+  "Bangkok, Hanoi, Jakarta" : {"dst": false, "offset" : "UTC+07:00", "index" : 82},
+  "Krasnoyarsk (RTZ 6)" : {"dst": false, "description" : "Russia", "offset" : "UTC+07:00", "index" : 83},
+
+  "Beijing, Chongqing, Hong Kong, Urumqi" : {"dst": false, "offset" : "UTC+08:00", "index" : 84},
+  "Irkutsk (RTZ 7)" : {"dst": false, "description" : "Russia", "offset" : "UTC+08:00", "index" : 85},
+  "Kuala Lumpur, Singapore" : {"dst": false, "offset" : "UTC+08:00", "index" : 86},
+
+  "Perth" : {"dst": false, "description" : "Australia", "offset" : "UTC+08:00", "index" : 87},
+  "Taipei" : {"dst": false, "offset" : "UTC+08:00", "index" : 88},
+  "Ulaanbaatar" : {"dst": false, "description": "Mongolia", "offset" : "UTC+08:00", "index" : 89},
+
+  "Osaka, Sapporo, Tokyo" : {"dst": false, "offset" : "UTC+09:00", "index" : 90},
+  "Seoul" : {"dst": false, "offset" : "UTC+09:00", "index" : 91},
+  "Yakutsk (RTZ 8)" : {"dst": false, "offset" : "UTC+09:00", "index" : 92},
+
+  "Adelaide" : {"dst": true, "offset" : "UTC+09:30", "index" : 93},
+  "Darwin" : {"dst": false, "offset" : "UTC+09:30", "index" : 94},
+  "Brisbane" : {"dst": false, "description" : "Central Australia", "offset" : "UTC+10:00", "index" : 95},
+
+  "Canberra, Melbourne, Sydney" : {"dst": true, "description" : "Australia", "offset" : "UTC+10:00", "index" : 96},
+  "Guam, Port Moresby" : {"dst": false, "offset" : "UTC+10:00", "index" : 97},
+  "Hobart" : {"dst": true, "description" : "South Australia", "offset" : "UTC+10:00", "index" : 98},
+
+  "Magadan" : {"dst": false, "description" : "Russia", "offset" : "UTC+10:00", "index" : 99},
+  "Vladivostok, Magadan (RTZ 9)" : {"dst": false, "description" : "Russia", "offset" : "UTC+10:00", "index" : 100},
+  "Chokurdakh (RTZ 10)" : {"dst": false, "description" : "Russia", "offset" : "UTC+11:00", "index" : 101},
+
+  "Solomon Is., New Caledonia" : {"dst": false, "description" : "New Zealand", "offset" : "UTC+11:00", "index" : 102},
+  "Anadyr, Petropavlovsk-Kamchatsky (RTZ 11)" : {"dst": false, "offset" : "UTC+12:00", "index" : 103},
+  "Auckland, Wellington" : {"dst": true, "description" : "New Zealand", "offset" : "UTC+12:00", "index" : 104},
+
+  "Coordinated Universal Time+12" : {"dst": false, "offset" : "UTC+12:00", "index" : 105},
+  "Fiji" : {"dst": true, "offset" : "UTC+12:00", "index" : 106},
+  "Nuku'alofa" : {"dst": false, "offset" : "UTC+13:00", "index" : 107},
+
+  "Samoa" : {"dst": true, "offset" : "UTC+13:00", "index" : 108},
+  "Kiritimati Island" : {"dst": false, "offset" : "UTC+14:00", "index" : 109}
+}

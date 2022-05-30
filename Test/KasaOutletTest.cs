@@ -5,18 +5,18 @@ using Newtonsoft.Json.Linq;
 
 namespace Test;
 
-public class KasaSmartOutletTest {
+public class KasaOutletTest {
 
-    private readonly IKasaClient     _client = A.Fake<IKasaClient>();
-    private readonly KasaSmartOutlet _outlet;
+    private readonly IKasaClient _client = A.Fake<IKasaClient>();
+    private readonly KasaOutlet  _outlet;
 
-    public KasaSmartOutletTest() {
-        _outlet = new KasaSmartOutlet(_client);
+    public KasaOutletTest() {
+        _outlet = new KasaOutlet(_client);
     }
 
     [Fact]
     public void Hostname() {
-        KasaSmartOutlet outlet = new("localhost");
+        KasaOutlet outlet = new("localhost");
         outlet.Hostname.Should().Be("localhost");
     }
 

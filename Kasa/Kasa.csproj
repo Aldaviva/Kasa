@@ -22,7 +22,7 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>1701,1702,1591</NoWarn>
+        <NoWarn>1701,1702</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -36,6 +36,7 @@
     <ItemGroup>
       <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
       <PackageReference Include="slf4net" Version="1.1.0" />
+      <PackageReference Include="System.Runtime" Version="4.3.1" />
     </ItemGroup>
 
 </Project>
