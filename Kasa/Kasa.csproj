@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
+        <Version>0.0.0</Version>
+        <Title>Kasa</Title>
+        <PackageId>Kasa</PackageId>
+        <Product>Kasa</Product>
+        <Description>TP-Link Kasa smart plugs/outlets</Description>
+        <Authors>Ben Hutchison</Authors>
+        <Company>Ben Hutchison</Company>
+        <Copyright>© 2021 Ben Hutchison</Copyright>
+        <RepositoryUrl>https://github.com/Aldaviva/Kasa.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>tp-link kasa smart-home home-automation smart plug outlet ep10 hs103 hs105 kp125 kp115</PackageTags>
+        <PackageProjectUrl>https://github.com/Aldaviva/Kasa</PackageProjectUrl>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <IncludeSource>true</IncludeSource>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>1701,1702,1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Remove="ExceptionAdjustments.txt" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="ExceptionAdjustments.txt" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+      <PackageReference Include="slf4net" Version="1.1.0" />
+    </ItemGroup>
+
+</Project>

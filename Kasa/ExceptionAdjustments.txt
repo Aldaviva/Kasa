@@ -1,0 +1,10 @@
+﻿# Due to [1], you may have to manually change the "Build Action" of this file to "C# analyzer additional file".
+# [1] https://github.com/dotnet/roslyn/issues/4655
+
+# This file adjusts exception information used by Tetractic.CodeAnalysis.ExceptionAnalyzers.
+# Usage: <memberId>[ <accessor>] (-/+)<exceptionTypeId>
+# See ECMA-334, 5th Ed. § D.4.2 "ID string format" for a description of the ID format.
+
+P:System.Array.Length get -T:System.OverflowException
+M:System.Array.Copy(System.Array,System.Array,System.Int32) -T:System.RankException
+M:System.Array.Copy(System.Array,System.Array,System.Int32) -T:System.ArrayTypeMismatchException
