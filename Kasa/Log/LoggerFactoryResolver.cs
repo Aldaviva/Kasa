@@ -1,6 +1,6 @@
 ﻿using slf4net;
 
-namespace Kasa.Logging;
+namespace Kasa.Log;
 
 /// <summary>
 /// <para>Used to provide a logger factory to <c>slf4net</c> in console, GUI, and other non-ASP.NET appliations.</para>

@@ -34,6 +34,16 @@ public class MarshalTests {
     }
 
     [Fact]
+    public void ParsePowerUsage() {
+        const string json   = @"{""current_ma"": 18, ""voltage_mv"": 121875, ""power_mw"": 992, ""total_wh"": 0}";
+        PowerUsage   actual = JsonConvert.DeserializeObject<PowerUsage>(json);
+        actual.Current.Should().Be(18);
+        actual.Voltage.Should().Be(121875);
+        actual.Power.Should().Be(992);
+        actual.CumulativeEnergySinceBoot.Should().Be(0);
+    }
+
+    [Fact]
     public void WrongJsonTokenType() {
         ((Func<ISet<Feature>?>) (() => JsonConvert.DeserializeObject<ISet<Feature>>(@"1", new FeatureConverter()))).Should().Throw<JsonSerializationException>();
         ((Func<OperatingMode?>) (() => JsonConvert.DeserializeObject<OperatingMode>(@"1", new OperatingModeConverter()))).Should().Throw<JsonSerializationException>();

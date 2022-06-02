@@ -56,6 +56,13 @@ public class KasaClientTest {
     }
 
     [Fact]
+    public void DeserializeMissingFeature() {
+        IEnumerable<byte> responseBytes = Convert.FromBase64String("AAAAOdDyl/qf64783uSfvdiq2Ifki++KqJK/jqKA5Zflutekw+Hb+ZT7n+qG48OtwraW5ZDgkP+N+dum2w==");
+        Action            thrower       = () => KasaClient.Deserialize<JObject>(responseBytes, 1, CommandFamily.EnergyMeter, "get_realtime");
+        thrower.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task Send() {
         A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(new byte[] { 0x00, 0x00, 0x00, 0x29 }, 0, destination, offset, length);
@@ -148,7 +155,7 @@ public class KasaClientTest {
         tcpServerSocket!.Client.Connected.Should().BeTrue();
         kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
 
-        Action assertConnected = () => kasaClient.AssertConnected();
+        Action assertConnected = () => kasaClient.EnsureConnected();
         assertConnected.Should().NotThrow();
 
         Func<Task> connect = async () => await kasaClient.Connect();
@@ -174,7 +181,7 @@ internal class TestableKasaClient: KasaClient {
 
     public TestableKasaClient(string hostname): base(hostname) { }
 
-    protected internal override void AssertConnected() {
+    protected internal override void EnsureConnected() {
         // we're not actually connected during tests, so don't throw
     }
 

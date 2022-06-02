@@ -7,7 +7,7 @@ namespace Kasa;
 /// <summary>
 /// Data about the device, including hardware, software, configuration, and current state.
 /// </summary>
-public record struct SystemInfo {
+public struct SystemInfo {
 
     /// <summary>
     /// How the Kasa device has been configured to run. This corresponds to what you've selected in the Kasa mobile app (Schedule, Timer).

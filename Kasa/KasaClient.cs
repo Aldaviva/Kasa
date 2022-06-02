@@ -41,8 +41,9 @@ internal class KasaClient: IKasaClient {
     }
 
     public KasaClient(string hostname) {
-        _tcpClient = new TcpClient(AddressFamily.InterNetwork);
-        Hostname   = hostname;
+        _tcpClient                    = new TcpClient(AddressFamily.InterNetwork);
+        _tcpClient.Client.LingerState = new LingerOption(false, 0);
+        Hostname                      = hostname;
     }
 
     /// <exception cref="InvalidOperationException"></exception>
@@ -68,13 +69,13 @@ internal class KasaClient: IKasaClient {
     /// <exception cref="JsonReaderException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
     public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
-        AssertConnected();
+        EnsureConnected();
         await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel
         try {
             // Send request
 
             long   requestId = Interlocked.Increment(ref _requestId);
-            Stream tcpStream = GetNetworkStream();
+            Stream tcpStream = await GetNetworkStream();
             JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
                 new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters)))));
             byte[] requestBytes = Serialize(request, requestId);
@@ -109,7 +110,16 @@ internal class KasaClient: IKasaClient {
         }
     }
 
-    internal virtual Stream GetNetworkStream() => _tcpClient.GetStream();
+    internal virtual async Task<Stream> GetNetworkStream() {
+        Socket socket = _tcpClient.Client;
+        if (!socket.Connected) {
+            socket.Disconnect(true);
+            socket.Connect(Hostname, Port);
+            // await _tcpClient.ConnectAsync(Hostname, Port).ConfigureAwait(false);
+        }
+
+        return _tcpClient.GetStream();
+    }
 
     protected internal static byte[] Serialize(JToken request, long requestId) {
         string requestJson  = request.ToString(Formatting.None);
@@ -122,6 +132,7 @@ internal class KasaClient: IKasaClient {
     }
 
     /// <exception cref="JsonReaderException"></exception>
+    /// <exception cref="InvalidOperationException">If the device is missing a feature that is required to run the given method, such as running EnergyMeter.GetInstantaneousPowerUsage() on an EP10, which does not have the EnergyMeter Feature.</exception>
     protected internal static T Deserialize<T>(IEnumerable<byte> responseBytes, long requestId, CommandFamily commandFamily, string methodName) {
         byte[] responseDeciphered = Decipher(responseBytes.ToArray());
         int    responseLength     = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(responseDeciphered, 0));
@@ -129,7 +140,13 @@ internal class KasaClient: IKasaClient {
 
         WireLogger.Trace("tcp-outgoing-{0} << {1}", requestId, responseString);
         try {
-            return JObject.Parse(responseString)[commandFamily.ToJsonString()]![methodName]!.ToObject<T>(JsonSerializer)!;
+            JToken innerResponse = JObject.Parse(responseString)[commandFamily.ToJsonString()]!;
+            if (innerResponse["err_msg"]?.Value<string>() == "module not support") {
+                throw new InvalidOperationException($"Kasa device is missing a feature required to run the {commandFamily.ToJsonString()}.{methodName} method. " +
+                    $"You can check {nameof(IKasaOutlet)}.{CommandFamily.System}.{nameof(IKasaOutlet.ISystemCommands.GetInfo)}().Features to see which features your device has.");
+            }
+
+            return innerResponse[methodName]!.ToObject<T>(JsonSerializer)!;
         } catch (JsonReaderException e) {
             Logger.Error(e, "Failed to deserialize JSON to {0}: {1}", typeof(T), responseString);
             throw;
@@ -156,9 +173,19 @@ internal class KasaClient: IKasaClient {
     }
 
     /// <exception cref="InvalidOperationException"></exception>
-    protected internal virtual void AssertConnected() {
-        if (!Connected) {
-            throw new InvalidOperationException("Not connected. Call Connect() first.");
+    /// <exception cref="SocketException"></exception>
+    protected internal virtual void EnsureConnected() {
+        Socket socket = _tcpClient.Client;
+        if (!socket.Connected) {
+            socket.Disconnect(true);
+            SocketAsyncEventArgs e = new() { RemoteEndPoint = new DnsEndPoint(Hostname, Port) };
+            if (socket.ConnectAsync(e)) {
+                ManualResetEventSlim connected = new();
+                e.Completed += (sender, args) => connected.Set();
+                connected.Wait();
+            }
+            // return Connect();
+            // throw new InvalidOperationException("Not connected. Call Connect() first.");
         }
     }
 

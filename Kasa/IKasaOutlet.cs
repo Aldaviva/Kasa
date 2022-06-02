@@ -44,6 +44,8 @@ public interface IKasaOutlet: IDisposable {
     /// </summary>
     ITimeCommands Time { get; }
 
+    IEnergyMeterCommands EnergyMeter { get; }
+
     /// <summary>
     /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
     /// </summary>
@@ -82,7 +84,7 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
-        Task<SystemInfo> GetSystemInfo();
+        Task<SystemInfo> GetInfo();
 
         /// <summary>
         /// <para>Outlets have a physical status light that shows whether they are supplying power to consumers or not.</para>
@@ -108,13 +110,15 @@ public interface IKasaOutlet: IDisposable {
 
         /// <summary>
         /// <para>Restart the device.</para>
+        /// <para>Rebooting will interrupt power to any connected consumers for roughly 108 milliseconds.</para>
+        /// <para>It takes about 8 seconds for a KP125 to completely reboot and resume responding to API requests, and about 14 seconds for an EP10.</para>
+        /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="SetOutletOn"/> to reestablish the previous state.</para>
         /// </summary>
         /// <param name="afterDelay">How long to wait before rebooting. If not specified, the device reboots immediately.</param>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
-        // TODO figure out if this interrupts power to consumers
         // TODO figure out if you need to reconnect (or make a new KasaOutlet) after calling this method
         Task Reboot(TimeSpan afterDelay = default);
 
@@ -171,6 +175,58 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
         Task SetTimeZone(TimeZoneInfo timeZone);
+
+    }
+
+    /// <summary>
+    /// <para>Commands that deal with the energy meter present in some Kasa devices, such as the KP125 and KP115.</para>
+    /// <para>To determine if your device has an energy meter, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</para>
+    /// </summary>
+    public interface IEnergyMeterCommands {
+
+        /// <summary>
+        /// Fetch a point-in-time measurement of the instantaneous electrical usage of the outlet.
+        /// </summary>
+        /// <returns>The amps, volts, and watts being used by this outlet right now, as well as total watt-hours used since boot.</returns>
+        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task<PowerUsage> GetInstantaneousPowerUsage();
+
+        /// <summary>
+        /// Fetch a historical report of cumulative energy usage, grouped by day, from a given month and year.
+        /// </summary>
+        /// <param name="year">the year to fetch historical data for, e.g. <c>2022</c></param>
+        /// <param name="month">the month to fetch historical data for, where January is <c>1</c></param>
+        /// <returns>An array of integers, where the index is the day of the given month where the first day of the month has index <c>0</c>, and the value is the amount of energy used on that day, in watt-hours (W⋅h). If no historical data exists for that month, returns <c>null</c>.</returns>
+        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">if the <c>month</c> is outside the range [1,12]</exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task<IList<int>?> GetDailyEnergyUsage(int year, int month);
+
+        /// <summary>
+        /// Fetch a historical report of cumulative energy usage, grouped by month, from a given year.
+        /// </summary>
+        /// <param name="year">the year to fetch historical data for, e.g. <c>2022</c></param>
+        /// <returns>An array of integers, where the index is the month of the given year where January has index <c>0</c>, and the value is the amount of energy used in that month, in watt-hours (W⋅h). If no historical data exists for that year, returns <c>null</c>.</returns>
+        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task<IList<int>?> GetMonthlyEnergyUsage(int year);
+
+        /// <summary>
+        /// <para>Clear all energy usage data for all days, months, and years, and begin gathering new data from a fresh start.</para>
+        /// <para>After calling this method, subsequent calls to <see cref="GetDailyEnergyUsage"/> and <see cref="GetMonthlyEnergyUsage"/> will return <c>null</c> for past months and years, respectively. The current month and year's data will be reset to <c>0</c>, respectively. In addition, subsequent calls to <see cref="GetInstantaneousPowerUsage"/> will return <c>0</c> for <see cref="PowerUsage.CumulativeEnergySinceBoot"/>, although it will not affect the point-in-time, non-historical measurements <see cref="PowerUsage.Current"/>, <see cref="PowerUsage.Voltage"/>, and <see cref="PowerUsage.Power"/>.</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task DeleteHistoricalUsage();
 
     }
 

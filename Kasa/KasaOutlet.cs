@@ -19,7 +19,7 @@ namespace Kasa;
 ///     await outlet.System.SetOutlet(true);
 /// }</code>
 /// </summary>
-public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands {
+public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands {
 
     private readonly IKasaClient _client;
 
@@ -50,6 +50,8 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <inheritdoc />
     public IKasaOutlet.ITimeCommands Time => this;
 
+    public IKasaOutlet.IEnergyMeterCommands EnergyMeter => this;
+
     /// <summary>
     /// <para>Disconnects and disposes the TCP client.</para>
     /// <para>Subclasses should call this base method in their overriding <c>Dispose</c> implementations.</para>
@@ -72,7 +74,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
 
     /// <inheritdoc />
     async Task<bool> IKasaOutlet.ISystemCommands.IsOutletOn() {
-        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetSystemInfo().ConfigureAwait(false);
+        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
         return systemInfo.IsOutletOn;
     }
 
@@ -82,13 +84,13 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     }
 
     /// <inheritdoc />
-    Task<SystemInfo> IKasaOutlet.ISystemCommands.GetSystemInfo() {
+    Task<SystemInfo> IKasaOutlet.ISystemCommands.GetInfo() {
         return _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo");
     }
 
     /// <inheritdoc />
     async Task<bool> IKasaOutlet.ISystemCommands.IsIndicatorLightOn() {
-        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetSystemInfo().ConfigureAwait(false);
+        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
         return !systemInfo.IndicatorLightDisabled;
     }
 
@@ -153,8 +155,53 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
             return _client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
         } catch (KeyNotFoundException e) {
             throw new TimeZoneNotFoundException($"Kasa devices don't have a built-in time zone that matches {timeZone.Id}." +
-                "Consult Kasa.Data.TimeZones.WindowsZoneIdsToKasaIndices for supported time zones.", e);
+                $"Consult Kasa.{nameof(TimeZones)}.{nameof(TimeZones.WindowsZoneIdsToKasaIndices)} for supported time zones.", e);
         }
+    }
+
+    /// <inheritdoc />
+    Task<PowerUsage> IKasaOutlet.IEnergyMeterCommands.GetInstantaneousPowerUsage() {
+        return _client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
+    }
+
+    /// <inheritdoc />
+    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetDailyEnergyUsage(int year, int month) {
+        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
+        List<int>? results  = null;
+
+        if (response.Count > 0) {
+            int daysInMonth = new DateTime(year, month, 1).AddMonths(1).AddDays(-1).Day;
+            results = new List<int>(Enumerable.Repeat(0, daysInMonth));
+            foreach (JToken dayEntry in response) {
+                int day    = dayEntry["day"]!.Value<int>();
+                int energy = dayEntry["energy_wh"]!.Value<int>();
+                results[day - 1] = energy;
+            }
+        }
+
+        return results;
+    }
+
+    /// <inheritdoc />
+    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetMonthlyEnergyUsage(int year) {
+        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
+        List<int>? results  = null;
+
+        if (response.Count > 0) {
+            results = new List<int>(Enumerable.Repeat(0, 12));
+            foreach (JToken monthEntry in response) {
+                int month  = monthEntry["month"]!.Value<int>();
+                int energy = monthEntry["energy_wh"]!.Value<int>();
+                results[month - 1] = energy;
+            }
+        }
+
+        return results;
+    }
+
+    /// <inheritdoc />
+    Task IKasaOutlet.IEnergyMeterCommands.DeleteHistoricalUsage() {
+        return _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
     }
 
 }

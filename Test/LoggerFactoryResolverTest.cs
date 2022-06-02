@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using Kasa.Logging;
+using Kasa.Log;
 using slf4net.Factories;
 
 namespace Test;
