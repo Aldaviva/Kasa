@@ -61,7 +61,7 @@ public class MarshalTests {
         actual.IsOutletOn.Should().BeFalse();
         actual.MacAddress.Should().Be(new PhysicalAddress(new byte[] { 0x5C, 0xA6, 0xE6, 0x4E, 0xF3, 0xEF }));
         actual.ModelName.Should().Be("EP10(US)");
-        actual.ModelDescription.Should().Be("Smart Wi-Fi Plug Mini");
+        actual.ModelFamily.Should().Be("Smart Wi-Fi Plug Mini");
         actual.Name.Should().Be("SX20");
         actual.OemId.Should().Be("41372DE62C896B2C0E93C20D70B62DDB");
         actual.Rssi.Should().Be(-61);

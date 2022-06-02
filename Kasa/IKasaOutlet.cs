@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -7,9 +8,11 @@ using Newtonsoft.Json;
 namespace Kasa;
 
 /// <summary>
-/// <para>A TP-Link Kasa outlet or plug. This interface is the main entry point of this library. The corresponding implementation is <see cref="KasaOutlet"/>.</para>
+/// <para>A TP-Link Kasa outlet or plug. This interface is the main entry point of the Kasa library. The corresponding implementation is <see cref="KasaOutlet"/>.</para>
 /// <para>You must call <see cref="Connect"/> on each instance before using it.</para>
-/// <para>Usage:</para>
+/// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
+/// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
+/// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
 /// await outlet.Connect();
 /// bool isOutletOn = await outlet.System.IsOutletOn();
@@ -69,7 +72,7 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
-        Task SetOutlet(bool turnOn);
+        Task SetOutletOn(bool turnOn);
 
         /// <summary>
         /// <para>Get data about the device, including hardware, software, configuration, and current state.</para>
@@ -101,7 +104,7 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
-        Task SetIndicatorLight(bool turnOn);
+        Task SetIndicatorLightOn(bool turnOn);
 
         /// <summary>
         /// <para>Restart the device.</para>
@@ -119,11 +122,11 @@ public interface IKasaOutlet: IDisposable {
         /// <para>Change the alias of this device. This will appear in the Kasa mobile app.</para>
         /// </summary>
         /// <param name="name">The new name of the device. The maximum length is 31 characters.</param>
+        /// <exception cref="ArgumentOutOfRangeException">if the new name is empty or longer than 31 characters</exception>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
-        /// <exception cref="ArgumentOutOfRangeException">if the new name is empty or longer than 31 characters</exception>
         Task SetName(string name);
 
         // Task SetLocation(double latitude, double longitude);
@@ -131,7 +134,7 @@ public interface IKasaOutlet: IDisposable {
     }
 
     /// <summary>
-    /// Commands that deal with the outlet's internal clock that keeps track of the current date and time. This is unrelated to schedules and timers that control when the outlet turns or off.
+    /// Commands that deal with the device's internal clock that keeps track of the current date and time. This is unrelated to schedules and timers that control when the outlet turns on or off.
     /// </summary>
     public interface ITimeCommands {
 
@@ -139,14 +142,35 @@ public interface IKasaOutlet: IDisposable {
         /// <para>Get the current time from the device's internal clock.</para>
         /// </summary>
         /// <returns>The date and time of the device, in its current timezone.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="JsonReaderException"></exception>
         Task<DateTime> GetTime();
 
-        Task<TimeZoneInfo> GetTimeZone();
+        /// <summary>
+        /// <para>Get a list of possible time zones that the device is in.</para>
+        /// <para>This may return multiple possibilities instead of one time zone because, unfortunately, Kasa devices internally represent multiple time zones with non-unique identifiers.</para>
+        /// <para>For example, <c>Central Standard Time</c> is unambiguously stored as <c>13</c> on the Kasa device, so this method will only return that time zone.</para>
+        /// <para>However, <c>Eastern Standard Time</c> is stored as <c>18</c> on the Kasa device, which collides with <c>18</c> that it also uses to represent <c>Eastern Standard Time (Mexico)</c>, <c>Turks and Caicos Standard Time</c>, <c>Haiti Standard Time</c>, and <c>Easter Island Standard Time</c>, so this method will return all five possibilities since they cannot be distinguished based on the information provided by the device.</para>
+        /// </summary>
+        /// <returns>A enumerable of possible time zones for which the device may be configured. It will never be empty or null.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task<IEnumerable<TimeZoneInfo>> GetTimeZones();
 
-        Task SetTimezone(TimeZoneInfo newZone);
+        /// <summary>
+        /// <para>Configure the device to use a specific time zone.</para>
+        /// </summary>
+        /// <param name="timeZone">The time zone that you want the device to use with its internal clock.</param>
+        /// <exception cref="TimeZoneNotFoundException">If the time zone you specified doesn't exist on Kasa devices. As of 2022-06-01, the only two known examples are <c>Magallanes Standard Time (America/Punta_Arenas)</c> and the made-up <c>Mid-Atlantic Standard Time.</c></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="SocketException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="JsonReaderException"></exception>
+        Task SetTimeZone(TimeZoneInfo timeZone);
 
     }
 

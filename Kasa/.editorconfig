@@ -1,0 +1,2 @@
+[*]
+dotnet_ignored_exceptions = System.OutOfMemoryException

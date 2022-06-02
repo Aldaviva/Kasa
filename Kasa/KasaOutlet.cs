@@ -1,9 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Kasa;
 
+/// <summary>
+/// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
+/// <para>You must call <see cref="Connect"/> on each instance before using it.</para>
+/// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
+/// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
+/// <para>Example usage:</para>
+/// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
+/// await outlet.Connect();
+/// bool isOutletOn = await outlet.System.IsOutletOn();
+/// if(!isOutletOn){
+///     await outlet.System.SetOutlet(true);
+/// }</code>
+/// </summary>
 public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands {
 
     private readonly IKasaClient _client;
@@ -11,6 +26,13 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <inheritdoc />
     public string Hostname => _client.Hostname;
 
+    /// <summary>
+    /// <para>Construct a new instance of a <see cref="KasaClient"/> to talk to a Kasa device with the given hostname.</para>
+    /// <para>After constructing an instance, remember to call <see cref="Connect"/> to establish a TCP connection to the device before you send commands.</para>
+    /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
+    /// <para>Remember to <see cref="Dispose()"/> each instance when you're done using it and want to disconnect from the TCP session. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
+    /// </summary>
+    /// <param name="hostname">The fully-qualified domain name or IP address of the Kasa device to which this instance should connect.</param>
     public KasaOutlet(string hostname): this(new KasaClient(hostname)) { }
 
     internal KasaOutlet(IKasaClient client) {
@@ -28,12 +50,21 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <inheritdoc />
     public IKasaOutlet.ITimeCommands Time => this;
 
+    /// <summary>
+    /// <para>Disconnects and disposes the TCP client.</para>
+    /// <para>Subclasses should call this base method in their overriding <c>Dispose</c> implementations.</para>
+    /// </summary>
+    /// <param name="disposing"><c>true</c> to dispose the TCP client, <c>false</c> if you're running in a finalizer and it's already been disposed</param>
     protected virtual void Dispose(bool disposing) {
         if (disposing) {
             _client.Dispose();
         }
     }
 
+    /// <summary>
+    /// <para>Disconnect and dispose the TCP client.</para>
+    /// <para>After calling this method, you can't use this instance again, even if you call <see cref="Connect"/> again. Instead, you should construct a new instance.</para>
+    /// </summary>
     public void Dispose() {
         Dispose(true);
         GC.SuppressFinalize(this);
@@ -46,7 +77,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     }
 
     /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.SetOutlet(bool turnOn) {
+    Task IKasaOutlet.ISystemCommands.SetOutletOn(bool turnOn) {
         return _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = Convert.ToInt32(turnOn) });
     }
 
@@ -62,7 +93,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     }
 
     /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.SetIndicatorLight(bool turnOn) {
+    Task IKasaOutlet.ISystemCommands.SetIndicatorLightOn(bool turnOn) {
         return _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = Convert.ToInt32(!turnOn) });
     }
 
@@ -73,7 +104,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
 
     /// <inheritdoc />
     Task IKasaOutlet.ISystemCommands.SetName(string name) {
-        if (string.IsNullOrEmpty(name) || name.Length > 31) {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 31) {
             throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive)");
         }
 
@@ -99,16 +130,31 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
             response["sec"]!.ToObject<int>());
     }
 
-    async Task<TimeZoneInfo> IKasaOutlet.ITimeCommands.GetTimeZone() {
+    /// <inheritdoc />
+    // ExceptionAdjustment: M:System.TimeZoneInfo.FindSystemTimeZoneById(System.String) -T:System.Security.SecurityException
+    async Task<IEnumerable<TimeZoneInfo>> IKasaOutlet.ITimeCommands.GetTimeZones() {
         JObject response         = await _client.Send<JObject>(CommandFamily.Time, "get_timezone").ConfigureAwait(false);
         int     deviceTimezoneId = response["index"]!.ToObject<int>();
 
-        return TimeZoneInfo.FindSystemTimeZoneById(TimeZones.DeviceIndicesToWindowsZoneIds[deviceTimezoneId]);
+        IEnumerable<string> windowsZoneIds = TimeZones.KasaIndicesToWindowsZoneIds[deviceTimezoneId];
+        return windowsZoneIds.SelectMany(windowsZoneId => {
+            try {
+                return new[] { TimeZoneInfo.FindSystemTimeZoneById(windowsZoneId) };
+            } catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException) {
+                return Enumerable.Empty<TimeZoneInfo>();
+            }
+        });
     }
 
-    Task IKasaOutlet.ITimeCommands.SetTimezone(TimeZoneInfo timeZone) {
-        int deviceTimezoneId = TimeZones.WindowsZoneIdsToDeviceIndices[timeZone.Id];
-        return _client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
+    /// <inheritdoc />
+    Task IKasaOutlet.ITimeCommands.SetTimeZone(TimeZoneInfo timeZone) {
+        try {
+            int deviceTimezoneId = TimeZones.WindowsZoneIdsToKasaIndices[timeZone.Id];
+            return _client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
+        } catch (KeyNotFoundException e) {
+            throw new TimeZoneNotFoundException($"Kasa devices don't have a built-in time zone that matches {timeZone.Id}." +
+                "Consult Kasa.Data.TimeZones.WindowsZoneIdsToKasaIndices for supported time zones.", e);
+        }
     }
 
 }
