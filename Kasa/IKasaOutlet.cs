@@ -40,10 +40,16 @@ public interface IKasaOutlet: IDisposable {
     ISystemCommands System { get; }
 
     /// <summary>
-    /// Commands that deal with the outlet's internal clock that keeps track of the current date and time. This is unrelated to schedules and timers that control when the outlet turns or off.
+    /// <para>Commands that deal with the outlet's internal clock that keeps track of the current date and time.</para>
+    /// <para>This is unrelated to schedules and timers that control when the outlet turns or off.</para>
     /// </summary>
     ITimeCommands Time { get; }
 
+    /// <summary>
+    /// <para>Commands that deal with the energy consumption of the electrical consumers attached to the outlet.</para>
+    /// <para>These commands are not available on all Kasa devices – they require the <see cref="Feature.EnergyMeter"/> feature, which is only available on models like KP125, KP115, HS300, and HS110.</para>
+    /// <para>To check if your device has this feature and can handle these commands, you can call <c>(await IKasaOutlet.System.GetInfo()).Features.Contains(Features.EnergyMeter)</c>.</para>
+    /// </summary>
     IEnergyMeterCommands EnergyMeter { get; }
 
     /// <summary>

@@ -50,6 +50,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <inheritdoc />
     public IKasaOutlet.ITimeCommands Time => this;
 
+    /// <inheritdoc />
     public IKasaOutlet.IEnergyMeterCommands EnergyMeter => this;
 
     /// <summary>

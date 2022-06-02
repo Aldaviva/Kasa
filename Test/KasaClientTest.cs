@@ -112,9 +112,49 @@ public class KasaClientTest {
     }
 
     [Fact]
-    public async Task AssertConnected() {
-        Func<Task<JObject>> send = () => new KasaClient("localhost").Send<JObject>(CommandFamily.System, "myMethod");
-        await send.Should().ThrowAsync<InvalidOperationException>();
+    public async Task EnsureConnected() {
+        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+
+        kasaClient.EnsureConnected();
+        await Task.Delay(100);
+        kasaClient.Connected.Should().BeTrue();
+        serverSocket.Value.Should().NotBeNull();
+        serverSocket.Value!.Client.Connected.Should().BeTrue();
+        kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
+
+        // Func<Task<JObject>> send = () => new KasaClient("localhost").Send<JObject>(CommandFamily.System, "myMethod");
+        // await send.Should().ThrowAsync<InvalidOperationException>();
+
+        kasaClient.Dispose();
+        kasaClient.Connected.Should().BeFalse();
+
+        serverSocket.Value.Close();
+        server.Stop();
+    }
+
+    [Fact]
+    public async Task Reconnect() {
+        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+
+        await kasaClient.Connect();
+        await Task.Delay(100);
+        kasaClient.Connected.Should().BeTrue();
+        serverSocket.Value.Should().NotBeNull();
+        serverSocket.Value!.Client.Connected.Should().BeTrue();
+        kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
+
+        //TODO this doesn't actually exercise the Socket.Disconnect() call in EnsureConnected(). Disconnect() is required, because it fails in real-life scenarios, but I can't synthesize it with my in-process test TCP server. Maybe .NET's Socket implementation is always polite enough to send FIN on shutdown, but the Kasa TCP server just crashes itself on reboot?
+        serverSocket.Value.Client.Close();
+
+        kasaClient.EnsureConnected();
+        await Task.Delay(100);
+        kasaClient.Connected.Should().BeTrue();
+
+        kasaClient.Dispose();
+        kasaClient.Connected.Should().BeFalse();
+
+        serverSocket.Value.Close();
+        server.Stop();
     }
 
     [Fact]
@@ -127,32 +167,14 @@ public class KasaClientTest {
 
     [Fact]
     public async Task Connect() {
-        TcpListener? server     = null;
-        ushort?      serverPort = null;
-        while (!server?.Server.IsBound ?? true) {
-            serverPort = (ushort) Random.Shared.Next(1024, 65536);
-            server     = new TcpListener(IPAddress.Loopback, serverPort.Value);
-            try {
-                server.Start();
-            } catch (SocketException e) {
-                if (e.ErrorCode != 10013) { //WSAEACCES, already in use
-                    throw;
-                }
-            }
-        }
-
-        TcpClient? tcpServerSocket = null;
-#pragma warning disable CS4014 //don't deadlock
-        server!.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket = task.Result);
-#pragma warning restore CS4014
-        KasaClient kasaClient = new("localhost") { Port = serverPort!.Value };
+        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
         kasaClient.Connected.Should().BeFalse();
 
         await kasaClient.Connect();
         await Task.Delay(100);
         kasaClient.Connected.Should().BeTrue();
-        tcpServerSocket.Should().NotBeNull();
-        tcpServerSocket!.Client.Connected.Should().BeTrue();
+        serverSocket.Value.Should().NotBeNull();
+        serverSocket.Value!.Client.Connected.Should().BeTrue();
         kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
 
         Action assertConnected = () => kasaClient.EnsureConnected();
@@ -164,14 +186,32 @@ public class KasaClientTest {
         kasaClient.Dispose();
         kasaClient.Connected.Should().BeFalse();
 
-        tcpServerSocket.Close();
+        serverSocket.Value.Close();
         server.Stop();
     }
 
-    // [Fact]
-    // public void GetNetworkStream() {
-    //     new KasaClient("localhost").GetNetworkStream().Should().NotBeNull();
-    // }
+    private static (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) StartTestServer(ushort? desiredPort = null) {
+        TcpListener? server     = null;
+        ushort?      serverPort = desiredPort;
+        while (!server?.Server.IsBound ?? true) {
+            serverPort ??= (ushort) Random.Shared.Next(1024, 65536);
+            server     =   new TcpListener(IPAddress.Loopback, serverPort.Value);
+            try {
+                server.Start();
+            } catch (SocketException e) {
+                if (e.ErrorCode != 10013) { //WSAEACCES, already in use
+                    throw;
+                }
+
+                serverPort = null;
+            }
+        }
+
+        Wrapper<TcpClient?> tcpServerSocket = new();
+        server!.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
+        KasaClient kasaClient = new("localhost") { Port = serverPort!.Value };
+        return (server, serverPort.Value, tcpServerSocket, kasaClient);
+    }
 
 }
 
@@ -182,11 +222,17 @@ internal class TestableKasaClient: KasaClient {
     public TestableKasaClient(string hostname): base(hostname) { }
 
     protected internal override void EnsureConnected() {
-        // we're not actually connected during tests, so don't throw
+        // we're not actually connected during most tests, so don't throw
     }
 
     internal override Stream GetNetworkStream() {
         return _networkStream;
     }
+
+}
+
+internal class Wrapper<T> {
+
+    public T Value { get; set; } = default!;
 
 }

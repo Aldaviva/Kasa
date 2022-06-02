@@ -2,14 +2,14 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
-        <Version>0.0.0</Version>
+        <Version>0.0.0-snapshot</Version>
         <Title>Kasa</Title>
         <PackageId>Kasa</PackageId>
         <Product>Kasa</Product>
         <Description>TP-Link Kasa smart plugs/outlets</Description>
         <Authors>Ben Hutchison</Authors>
         <Company>Ben Hutchison</Company>
-        <Copyright>© 2021 Ben Hutchison</Copyright>
+        <Copyright>© 2022 Ben Hutchison</Copyright>
         <RepositoryUrl>https://github.com/Aldaviva/Kasa.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>tp-link kasa smart-home home-automation smart plug outlet ep10 hs103 hs105 kp125 kp115</PackageTags>

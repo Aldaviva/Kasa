@@ -32,7 +32,7 @@ internal class KasaClient: IKasaClient {
 
     public string Hostname { get; }
 
-    public bool Connected => _tcpClient.Connected;
+    public bool Connected => _tcpClient.Connected && _tcpClient.Client.Connected;
 
     static KasaClient() {
         JsonSerializer.Converters.Add(new MacAddressConverter());
@@ -41,9 +41,8 @@ internal class KasaClient: IKasaClient {
     }
 
     public KasaClient(string hostname) {
-        _tcpClient                    = new TcpClient(AddressFamily.InterNetwork);
-        _tcpClient.Client.LingerState = new LingerOption(false, 0);
-        Hostname                      = hostname;
+        _tcpClient = new TcpClient(AddressFamily.InterNetwork);
+        Hostname   = hostname;
     }
 
     /// <exception cref="InvalidOperationException"></exception>
@@ -58,16 +57,17 @@ internal class KasaClient: IKasaClient {
         return _tcpClient.ConnectAsync(Hostname, Port);
     }
 
+    /// <exception cref="SocketException"></exception>
+    /// <exception cref="IOException"></exception>
+    /// <exception cref="JsonReaderException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
     // ExceptionAdjustment: P:System.Net.Sockets.TcpClient.ReceiveBufferSize get -T:System.Net.Sockets.SocketException
     // ExceptionAdjustment: M:System.Text.StringBuilder.AppendFormat(System.String,System.Object) -T:System.FormatException
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
     // ExceptionAdjustment: M:System.IO.Stream.ReadAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
-    /// <exception cref="SocketException"></exception>
-    /// <exception cref="IOException"></exception>
-    /// <exception cref="JsonReaderException"></exception>
-    /// <exception cref="InvalidOperationException"></exception>
+    // ExceptionAdjustment: M:System.Threading.Interlocked.Increment(System.Int64@) -T:System.NullReferenceException
     public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
         EnsureConnected();
         await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel
@@ -75,7 +75,7 @@ internal class KasaClient: IKasaClient {
             // Send request
 
             long   requestId = Interlocked.Increment(ref _requestId);
-            Stream tcpStream = await GetNetworkStream();
+            Stream tcpStream = GetNetworkStream();
             JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
                 new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters)))));
             byte[] requestBytes = Serialize(request, requestId);
@@ -110,14 +110,9 @@ internal class KasaClient: IKasaClient {
         }
     }
 
-    internal virtual async Task<Stream> GetNetworkStream() {
-        Socket socket = _tcpClient.Client;
-        if (!socket.Connected) {
-            socket.Disconnect(true);
-            socket.Connect(Hostname, Port);
-            // await _tcpClient.ConnectAsync(Hostname, Port).ConfigureAwait(false);
-        }
-
+    /// <exception cref="SocketException"></exception>
+    internal virtual Stream GetNetworkStream() {
+        EnsureConnected();
         return _tcpClient.GetStream();
     }
 
@@ -174,18 +169,25 @@ internal class KasaClient: IKasaClient {
 
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="SocketException"></exception>
+    // ExceptionAdjustment: M:System.Net.Sockets.Socket.Disconnect(System.Boolean) -T:System.PlatformNotSupportedException
+    // ExceptionAdjustment: M:System.Net.Sockets.Socket.ConnectAsync(System.Net.Sockets.SocketAsyncEventArgs) -T:System.NotSupportedException
+    // ExceptionAdjustment: M:System.Net.Sockets.Socket.ConnectAsync(System.Net.Sockets.SocketAsyncEventArgs) -T:System.Security.SecurityException
     protected internal virtual void EnsureConnected() {
         Socket socket = _tcpClient.Client;
         if (!socket.Connected) {
-            socket.Disconnect(true);
+            try {
+                // If the server vanished without closing the connection (e.g. reboot), we need to manually disconnect the socket before reconnecting it, otherwise we will get "InvalidOperationException: The operation is not allowed on non-connected sockets."
+                socket.Disconnect(true);
+            } catch (SocketException) {
+                //socket has not been connected before
+            }
+
             SocketAsyncEventArgs e = new() { RemoteEndPoint = new DnsEndPoint(Hostname, Port) };
             if (socket.ConnectAsync(e)) {
                 ManualResetEventSlim connected = new();
                 e.Completed += (sender, args) => connected.Set();
                 connected.Wait();
             }
-            // return Connect();
-            // throw new InvalidOperationException("Not connected. Call Connect() first.");
         }
     }
 
