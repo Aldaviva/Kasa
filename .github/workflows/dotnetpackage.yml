@@ -1,0 +1,50 @@
+name: .NET
+
+on:
+  push:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    env:
+      ProjectName: Kasa
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Clone
+      uses: actions/checkout@v3
+        
+    - name: Set up
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.x
+        
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      run: |
+        dotnet test --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage" --settings Test/coverlet.runsettings
+        mv Test/TestResults/*/coverage.info Test/TestResults
+
+    - name: Pack
+      run: dotnet pack --no-build --configuration Release
+
+    - name: Upload package
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.ProjectName }}.nupkg
+        path: ${{ env.ProjectName }}/bin/Release/*.*nupkg
+
+    - name: Upload coverage
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: Test/TestResults/coverage.info
+        base-path: ${{ env.ProjectName }}
