@@ -4,6 +4,7 @@ using System.Text;
 using FakeItEasy;
 using FluentAssertions;
 using Kasa;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -36,7 +37,7 @@ public class KasaClientTest {
 
     [Fact]
     public void Serialize() {
-        byte[] actual   = KasaClient.Serialize(new JObject(new JProperty("system", new JObject(new JProperty("get_sysinfo", (object?) null)))), 1);
+        byte[] actual   = _client.Serialize(new JObject(new JProperty("system", new JObject(new JProperty("get_sysinfo", (object?) null)))), 1);
         byte[] expected = Convert.FromBase64String("AAAAH9DygfiL/5r31e+UttG0wJ/sleaP4YfoyvCe64frlus=");
         actual.Should().BeEquivalentTo(expected);
     }
@@ -44,21 +45,21 @@ public class KasaClientTest {
     [Fact]
     public void Deserialize() {
         IEnumerable<byte> responseBytes = Convert.FromBase64String("AAAAKdDygfiL/5r31e+UtsWg1Ivngua51rDW9M61l/KA8q3OocWggriI9Yj1");
-        JObject           actual        = KasaClient.Deserialize<JObject>(responseBytes, 1, CommandFamily.System, "set_led_off");
+        JObject           actual        = _client.Deserialize<JObject>(responseBytes, 1, CommandFamily.System, "set_led_off");
         actual.Should().BeEquivalentTo(JObject.Parse(@"{""err_code"":0}"));
     }
 
     [Fact]
     public void DeserializeInvalidJson() {
         byte[] responseBytes = { 0x00, 0x00, 0x00, 0x01, 0x00 };
-        Action thrower       = () => KasaClient.Deserialize<JObject>(responseBytes, 1, CommandFamily.System, "test");
+        Action thrower       = () => _client.Deserialize<JObject>(responseBytes, 1, CommandFamily.System, "test");
         thrower.Should().Throw<JsonReaderException>();
     }
 
     [Fact]
     public void DeserializeMissingFeature() {
         IEnumerable<byte> responseBytes = Convert.FromBase64String("AAAAOdDyl/qf64783uSfvdiq2Ifki++KqJK/jqKA5Zflutekw+Hb+ZT7n+qG48OtwraW5ZDgkP+N+dum2w==");
-        Action            thrower       = () => KasaClient.Deserialize<JObject>(responseBytes, 1, CommandFamily.EnergyMeter, "get_realtime");
+        Action            thrower       = () => _client.Deserialize<JObject>(responseBytes, 1, CommandFamily.EnergyMeter, "get_realtime");
         thrower.Should().Throw<InvalidOperationException>();
     }
 
@@ -188,6 +189,15 @@ public class KasaClientTest {
 
         serverSocket.Value.Close();
         server.Stop();
+    }
+
+    [Fact]
+    public void Logging() {
+        _client.LoggerFactory.Should().BeNull();
+
+        ILoggerFactory loggerFactory = A.Fake<ILoggerFactory>();
+        _client.LoggerFactory = loggerFactory;
+        _client.LoggerFactory.Should().BeSameAs(loggerFactory);
     }
 
     private static (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) StartTestServer(ushort? desiredPort = null) {

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Kasa;
@@ -10,6 +11,7 @@ internal interface IKasaClient: IDisposable {
 
     string Hostname { get; }
     bool Connected { get; }
+    ILoggerFactory? LoggerFactory { get; set; }
 
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="SocketException"></exception>

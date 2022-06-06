@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Kasa;
@@ -20,6 +21,7 @@ namespace Kasa;
 ///     await outlet.System.SetOutlet(true);
 /// }</code>
 /// </summary>
+//TODO document implicit connect
 public interface IKasaOutlet: IDisposable {
 
     /// <summary>
@@ -28,10 +30,20 @@ public interface IKasaOutlet: IDisposable {
     string Hostname { get; }
 
     /// <summary>
+    /// <para>Allows you to optionally provide a <c>Microsoft.Extensions.Logging</c> <see cref="ILoggerFactory"/> so this <see cref="IKasaOutlet"/> can emit log messages.</para>
+    /// <para>By default, this property is <c>null</c>, and logs are not emitted.</para>
+    /// <para>Setting this is useful if you want to see the raw JSON messages being sent and received from the outlet's TCP server, which are emitted at <see cref="LogLevel.Trace"/> level.</para>
+    /// <para>To get an <see cref="ILoggerFactory"/> instance, you can use .NET dependency injection to call <c>IServiceCollection.GetService&lt;ILoggerFactory&gt;()</c>, or you can create one manually by calling <c>LoggerFactory.Create(ILoggingBuilder)</c>.</para>
+    /// <para>For more information, see https://docs.microsoft.com/en-us/dotnet/core/extensions/logging</para>
+    /// </summary>
+    ILoggerFactory? LoggerFactory { get; set; }
+
+    /// <summary>
     /// Required before calling any commands on the outlet. Connects to the outlet using the given hostname.
     /// </summary>
     /// <exception cref="InvalidOperationException">This instance is already connected or has already been disposed.</exception>
     /// <exception cref="SocketException">The TCP connection failed.</exception>
+    //TODO document implicit connect
     Task Connect();
 
     /// <summary>
@@ -193,7 +205,7 @@ public interface IKasaOutlet: IDisposable {
         /// <summary>
         /// Fetch a point-in-time measurement of the instantaneous electrical usage of the outlet.
         /// </summary>
-        /// <returns>The amps, volts, and watts being used by this outlet right now, as well as total watt-hours used since boot.</returns>
+        /// <returns>The milliamps, millivolts, and milliwatts being used by this outlet right now, as well as total watt-hours used since boot.</returns>
         /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
         /// <exception cref="SocketException"></exception>
         /// <exception cref="IOException"></exception>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace Kasa;
@@ -25,6 +26,12 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
 
     /// <inheritdoc />
     public string Hostname => _client.Hostname;
+
+    /// <inheritdoc />
+    public ILoggerFactory? LoggerFactory {
+        get => _client.LoggerFactory;
+        set => _client.LoggerFactory = value;
+    }
 
     /// <summary>
     /// <para>Construct a new instance of a <see cref="KasaClient"/> to talk to a Kasa device with the given hostname.</para>
@@ -108,7 +115,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <inheritdoc />
     Task IKasaOutlet.ISystemCommands.SetName(string name) {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 31) {
-            throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive)");
+            throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive), and cannot be only whitespace");
         }
 
         return _client.Send<JObject>(CommandFamily.System, "set_dev_alias", new { alias = name });

@@ -8,12 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="C:\Users\Ben\.nuget\packages\slf4net.nlog\1.1.0\contentFiles\any\netstandard2.0\app.config.transform" />
-    <Content Remove="C:\Users\Ben\.nuget\packages\slf4net.nlog\1.1.0\contentFiles\any\netstandard2.0\web.config.transform" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="slf4net.NLog" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

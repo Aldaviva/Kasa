@@ -8,9 +8,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Kasa.Marshal;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using slf4net;
 
 namespace Kasa;
 
@@ -18,8 +18,6 @@ internal class KasaClient: IKasaClient {
 
     private const int HeaderLength = 4;
 
-    private static readonly  ILogger        Logger         = LoggerFactory.GetLogger(typeof(KasaOutlet));
-    private static readonly  ILogger        WireLogger     = LoggerFactory.GetLogger("wire");
     private static readonly  SemaphoreSlim  TcpMutex       = new(1);
     private static readonly  Encoding       Encoding       = Encoding.UTF8;
     internal static readonly JsonSerializer JsonSerializer = new();
@@ -31,6 +29,17 @@ internal class KasaClient: IKasaClient {
     private  bool   _disposed;
 
     public string Hostname { get; }
+
+    private ILogger<KasaClient>? _logger;
+    private ILoggerFactory?      _loggerFactory;
+
+    public ILoggerFactory? LoggerFactory {
+        get => _loggerFactory;
+        set {
+            _loggerFactory = value;
+            _logger        = _loggerFactory?.CreateLogger<KasaClient>();
+        }
+    }
 
     public bool Connected => _tcpClient.Connected && _tcpClient.Client.Connected;
 
@@ -116,24 +125,24 @@ internal class KasaClient: IKasaClient {
         return _tcpClient.GetStream();
     }
 
-    protected internal static byte[] Serialize(JToken request, long requestId) {
+    protected internal byte[] Serialize(JToken request, long requestId) {
         string requestJson  = request.ToString(Formatting.None);
         byte[] requestBytes = new byte[HeaderLength + Encoding.GetByteCount(requestJson)];
         Array.Copy(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(requestBytes.Length - HeaderLength)), requestBytes, HeaderLength);
         Encoding.GetBytes(requestJson, 0, requestJson.Length, requestBytes, HeaderLength);
 
-        WireLogger.Trace("tcp-outgoing-{0} >> {1}", requestId, requestJson);
+        _logger?.LogTrace("tcp-outgoing-{requestId} >> {requestJson}", requestId, requestJson);
         return Cipher(requestBytes);
     }
 
     /// <exception cref="JsonReaderException"></exception>
     /// <exception cref="InvalidOperationException">If the device is missing a feature that is required to run the given method, such as running EnergyMeter.GetInstantaneousPowerUsage() on an EP10, which does not have the EnergyMeter Feature.</exception>
-    protected internal static T Deserialize<T>(IEnumerable<byte> responseBytes, long requestId, CommandFamily commandFamily, string methodName) {
+    protected internal T Deserialize<T>(IEnumerable<byte> responseBytes, long requestId, CommandFamily commandFamily, string methodName) {
         byte[] responseDeciphered = Decipher(responseBytes.ToArray());
         int    responseLength     = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(responseDeciphered, 0));
         string responseString     = Encoding.GetString(responseDeciphered, HeaderLength, responseLength);
 
-        WireLogger.Trace("tcp-outgoing-{0} << {1}", requestId, responseString);
+        _logger?.LogTrace("tcp-outgoing-{requestId} << {responseString}", requestId, responseString);
         try {
             JToken innerResponse = JObject.Parse(responseString)[commandFamily.ToJsonString()]!;
             if (innerResponse["err_msg"]?.Value<string>() == "module not support") {
@@ -143,7 +152,7 @@ internal class KasaClient: IKasaClient {
 
             return innerResponse[methodName]!.ToObject<T>(JsonSerializer)!;
         } catch (JsonReaderException e) {
-            Logger.Error(e, "Failed to deserialize JSON to {0}: {1}", typeof(T), responseString);
+            _logger?.LogError(e, "Failed to deserialize JSON to {destinationType}: {responseString}", typeof(T), responseString);
             throw;
         }
     }
