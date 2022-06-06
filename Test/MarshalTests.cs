@@ -37,10 +37,7 @@ public class MarshalTests {
     public void ParsePowerUsage() {
         const string json   = @"{""current_ma"": 18, ""voltage_mv"": 121875, ""power_mw"": 992, ""total_wh"": 0}";
         PowerUsage   actual = JsonConvert.DeserializeObject<PowerUsage>(json);
-        actual.Current.Should().Be(18);
-        actual.Voltage.Should().Be(121875);
-        actual.Power.Should().Be(992);
-        actual.CumulativeEnergySinceBoot.Should().Be(0);
+        actual.Should().Be(new PowerUsage(18, 121875, 992, 0));
     }
 
     [Fact]
