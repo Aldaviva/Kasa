@@ -1,0 +1,9 @@
+[*]
+dotnet_ignored_exceptions = System.OutOfMemoryException
+
+dotnet_diagnostic.Ex0100.severity = warning # Exception Analyzers: Member may throw undocumented exception
+dotnet_diagnostic.Ex0101.severity = warning # Exception Analyzers: Member accessor may throw undocumented exception
+dotnet_diagnostic.Ex0103.severity = warning # Exception Analyzers: Implicit constructor may throw undocumented exception
+dotnet_diagnostic.Ex0104.severity = warning # Exception Analyzers: Member initializer may throw undocumented exception
+dotnet_diagnostic.Ex0200.severity = warning # Exception Analyzers: Member is documented as throwing exception not documented on member in base or interface type
+dotnet_diagnostic.Ex0201.severity = warning # Exception Analyzers: Member accessor is documented as throwing exception not documented on member in base or interface type
