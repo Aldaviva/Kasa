@@ -1,26 +1,21 @@
 ﻿using System;
-using System.IO;
-using System.Net.Sockets;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Kasa;
 
 internal interface IKasaClient: IDisposable {
 
     string Hostname { get; }
-    bool Connected { get; }
-    ILoggerFactory? LoggerFactory { get; set; }
+    Options Options { get; set; }
 
-    /// <exception cref="InvalidOperationException"></exception>
-    /// <exception cref="SocketException"></exception>
+    bool Connected { get; }
+
+    /// <exception cref="ObjectDisposedException">This instance has already been disposed.</exception>
+    /// <exception cref="NetworkException">The TCP connection failed.</exception>
     Task Connect();
 
-    /// <exception cref="SocketException"></exception>
-    /// <exception cref="IOException"></exception>
-    /// <exception cref="JsonReaderException"></exception>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+    /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
     Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null);
 
 }

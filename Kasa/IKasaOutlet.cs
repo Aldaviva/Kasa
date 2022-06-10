@@ -1,28 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Sockets;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Kasa;
 
 /// <summary>
 /// <para>A TP-Link Kasa outlet or plug. This interface is the main entry point of the Kasa library. The corresponding implementation is <see cref="KasaOutlet"/>.</para>
-/// <para>You must call <see cref="Connect"/> on each instance before using it.</para>
+/// <para>You may optionally call <see cref="Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
-/// await outlet.Connect();
 /// bool isOutletOn = await outlet.System.IsOutletOn();
 /// if(!isOutletOn){
-///     await outlet.System.SetOutlet(true);
+///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-//TODO document implicit connect
-public interface IKasaOutlet: IDisposable {
+public interface IKasaOutlet: IOptions, IDisposable {
 
     /// <summary>
     /// The hostname that you specified for the client when you constructed the <see cref="KasaOutlet"/>. Can be an IP address or FQDN.
@@ -30,20 +24,14 @@ public interface IKasaOutlet: IDisposable {
     string Hostname { get; }
 
     /// <summary>
-    /// <para>Allows you to optionally provide a <c>Microsoft.Extensions.Logging</c> <see cref="ILoggerFactory"/> so this <see cref="IKasaOutlet"/> can emit log messages.</para>
-    /// <para>By default, this property is <c>null</c>, and logs are not emitted.</para>
-    /// <para>Setting this is useful if you want to see the raw JSON messages being sent and received from the outlet's TCP server, which are emitted at <see cref="LogLevel.Trace"/> level.</para>
-    /// <para>To get an <see cref="ILoggerFactory"/> instance, you can use .NET dependency injection to call <c>IServiceCollection.GetService&lt;ILoggerFactory&gt;()</c>, or you can create one manually by calling <c>LoggerFactory.Create(ILoggingBuilder)</c>.</para>
-    /// <para>For more information, see https://docs.microsoft.com/en-us/dotnet/core/extensions/logging</para>
+    /// <para>Connects to the outlet using the given hostname.</para>
+    /// <para>You may optionally call this to explicitly connect before sending any commands on the outlet.</para>
+    /// <para>If you don't call this method before sending a command (such as <c>IKasaOutlet.System.GetInfo()</c>), then this instance will automatically connect before sending that command.</para>
+    /// <para>Explicit connection may be more helpful for early detection of errors, as well as for reducing the latency of the first command. Automatic connection may be more convenient because there are fewer methods to invoke.</para>
+    /// <para>If this instance is already connected, then this call does nothing and returns immediately.</para>
     /// </summary>
-    ILoggerFactory? LoggerFactory { get; set; }
-
-    /// <summary>
-    /// Required before calling any commands on the outlet. Connects to the outlet using the given hostname.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">This instance is already connected or has already been disposed.</exception>
-    /// <exception cref="SocketException">The TCP connection failed.</exception>
-    //TODO document implicit connect
+    /// <exception cref="ObjectDisposedException">This instance has already been disposed.</exception>
+    /// <exception cref="NetworkException">The TCP connection failed.</exception>
     Task Connect();
 
     /// <summary>
@@ -74,10 +62,8 @@ public interface IKasaOutlet: IDisposable {
         /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
         /// </summary>
         /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<bool> IsOutletOn();
 
         /// <summary>
@@ -88,20 +74,16 @@ public interface IKasaOutlet: IDisposable {
         /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="Reboot"/>.</para>
         /// </summary>
         /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task SetOutletOn(bool turnOn);
 
         /// <summary>
         /// <para>Get data about the device, including hardware, software, configuration, and current state.</para>
         /// </summary>
         /// <returns>Data about the device</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<SystemInfo> GetInfo();
 
         /// <summary>
@@ -109,10 +91,8 @@ public interface IKasaOutlet: IDisposable {
         /// <para>This light can be disabled even when the outlet is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.</para>
         /// </summary>
         /// <returns><c>true</c> if the light will turn on whenever the outlet is supplying power, or <c>false</c> if the light will stay off regardless of whether or not the outlet is supplying power</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<bool> IsIndicatorLightOn();
 
         /// <summary>
@@ -120,10 +100,8 @@ public interface IKasaOutlet: IDisposable {
         /// <para>This light can be disabled even when the outlet is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.</para>
         /// </summary>
         /// <param name="turnOn"><c>true</c> if you want the light to turn on whenever the outlet is supplying power, or <c>false</c> if you want the light to stay off regardless of whether or not the outlet is supplying power</param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task SetIndicatorLightOn(bool turnOn);
 
         /// <summary>
@@ -131,13 +109,11 @@ public interface IKasaOutlet: IDisposable {
         /// <para>Rebooting will interrupt power to any connected consumers for roughly 108 milliseconds.</para>
         /// <para>It takes about 8 seconds for a KP125 to completely reboot and resume responding to API requests, and about 14 seconds for an EP10.</para>
         /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="SetOutletOn"/> to reestablish the previous state.</para>
+        /// <para>By default, this client will automatically reconnect to the outlet after it reboots, which can be tuned using the <see cref="IOptions.MaxAttempts"/> and <see cref="IOptions.RetryDelay"/> properties.</para>
         /// </summary>
         /// <param name="afterDelay">How long to wait before rebooting. If not specified, the device reboots immediately.</param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
-        // TODO figure out if you need to reconnect (or make a new KasaOutlet) after calling this method
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task Reboot(TimeSpan afterDelay = default);
 
         /// <summary>
@@ -145,10 +121,8 @@ public interface IKasaOutlet: IDisposable {
         /// </summary>
         /// <param name="name">The new name of the device. The maximum length is 31 characters.</param>
         /// <exception cref="ArgumentOutOfRangeException">if the new name is empty or longer than 31 characters</exception>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task SetName(string name);
 
         // Task SetLocation(double latitude, double longitude);
@@ -163,12 +137,18 @@ public interface IKasaOutlet: IDisposable {
         /// <summary>
         /// <para>Get the current time from the device's internal clock.</para>
         /// </summary>
-        /// <returns>The date and time of the device, in its current timezone.</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <returns>The date and time of the device, in the device's current timezone.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<DateTime> GetTime();
+
+        /// <summary>
+        /// <para>Get the current time and time zone from the device's internal clock.</para>
+        /// </summary>
+        /// <returns>The date, time, and time zone offset of the device, in the device's current timezone.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
+        Task<DateTimeOffset> GetTimeWithZoneOffset();
 
         /// <summary>
         /// <para>Get a list of possible time zones that the device is in.</para>
@@ -177,10 +157,8 @@ public interface IKasaOutlet: IDisposable {
         /// <para>However, <c>Eastern Standard Time</c> is stored as <c>18</c> on the Kasa device, which collides with <c>18</c> that it also uses to represent <c>Eastern Standard Time (Mexico)</c>, <c>Turks and Caicos Standard Time</c>, <c>Haiti Standard Time</c>, and <c>Easter Island Standard Time</c>, so this method will return all five possibilities since they cannot be distinguished based on the information provided by the device.</para>
         /// </summary>
         /// <returns>A enumerable of possible time zones for which the device may be configured. It will never be empty or null.</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<IEnumerable<TimeZoneInfo>> GetTimeZones();
 
         /// <summary>
@@ -188,10 +166,8 @@ public interface IKasaOutlet: IDisposable {
         /// </summary>
         /// <param name="timeZone">The time zone that you want the device to use with its internal clock.</param>
         /// <exception cref="TimeZoneNotFoundException">If the time zone you specified doesn't exist on Kasa devices. As of 2022-06-01, the only two known examples are <c>Magallanes Standard Time (America/Punta_Arenas)</c> and the made-up <c>Mid-Atlantic Standard Time.</c></exception>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task SetTimeZone(TimeZoneInfo timeZone);
 
     }
@@ -206,10 +182,9 @@ public interface IKasaOutlet: IDisposable {
         /// Fetch a point-in-time measurement of the instantaneous electrical usage of the outlet.
         /// </summary>
         /// <returns>The milliamps, millivolts, and milliwatts being used by this outlet right now, as well as total watt-hours used since boot.</returns>
-        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="FeatureUnavailable">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<PowerUsage> GetInstantaneousPowerUsage();
 
         /// <summary>
@@ -218,11 +193,9 @@ public interface IKasaOutlet: IDisposable {
         /// <param name="year">the year to fetch historical data for, e.g. <c>2022</c></param>
         /// <param name="month">the month to fetch historical data for, where January is <c>1</c></param>
         /// <returns>An array of integers, where the index is the day of the given month where the first day of the month has index <c>0</c>, and the value is the amount of energy used on that day, in watt-hours (W⋅h). If no historical data exists for that month, returns <c>null</c>.</returns>
-        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">if the <c>month</c> is outside the range [1,12]</exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="FeatureUnavailable">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<IList<int>?> GetDailyEnergyUsage(int year, int month);
 
         /// <summary>
@@ -230,20 +203,18 @@ public interface IKasaOutlet: IDisposable {
         /// </summary>
         /// <param name="year">the year to fetch historical data for, e.g. <c>2022</c></param>
         /// <returns>An array of integers, where the index is the month of the given year where January has index <c>0</c>, and the value is the amount of energy used in that month, in watt-hours (W⋅h). If no historical data exists for that year, returns <c>null</c>.</returns>
-        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="FeatureUnavailable">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task<IList<int>?> GetMonthlyEnergyUsage(int year);
 
         /// <summary>
         /// <para>Clear all energy usage data for all days, months, and years, and begin gathering new data from a fresh start.</para>
         /// <para>After calling this method, subsequent calls to <see cref="GetDailyEnergyUsage"/> and <see cref="GetMonthlyEnergyUsage"/> will return <c>null</c> for past months and years, respectively. The current month and year's data will be reset to <c>0</c>, respectively. In addition, subsequent calls to <see cref="GetInstantaneousPowerUsage"/> will return <c>0</c> for <see cref="PowerUsage.CumulativeEnergySinceBoot"/>, although it will not affect the point-in-time, non-historical measurements <see cref="PowerUsage.Current"/>, <see cref="PowerUsage.Voltage"/>, and <see cref="PowerUsage.Power"/>.</para>
         /// </summary>
-        /// <exception cref="InvalidOperationException">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
-        /// <exception cref="SocketException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="JsonReaderException"></exception>
+        /// <exception cref="FeatureUnavailable">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task DeleteHistoricalUsage();
 
     }

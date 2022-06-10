@@ -1,4 +1,5 @@
-﻿using Kasa;
+﻿using System.Net.Sockets;
+using Kasa;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 
@@ -12,24 +13,38 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
 
 ILogger logger = loggerFactory.CreateLogger("Main");
 
-using IKasaOutlet outlet = new KasaOutlet("washingmachine.outlets.aldaviva.com") { LoggerFactory = loggerFactory };
-// await outlet.Connect();
-
-async void Callback(object? state) {
-    PowerUsage usage = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
-    logger.LogInformation("Current: {current} mA; Voltage: {voltage} mV; Power: {power} mW", usage.Current, usage.Voltage, usage.Power);
-    // await outlet.System.SetIndicatorLightOn(isLightOn ^= true);
-}
-
-await using Timer timer = new(Callback, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
-
-using CancellationTokenSource interrupted = new();
-Console.CancelKeyPress += (sender, eventArgs) => {
-    eventArgs.Cancel = true;
-    interrupted.Cancel();
+using IKasaOutlet outlet = new KasaOutlet("192.168.1.227") {
+    LoggerFactory  = loggerFactory,
+    SendTimeout    = TimeSpan.FromSeconds(2),
+    ReceiveTimeout = TimeSpan.FromSeconds(2),
+    MaxAttempts    = 2
 };
 
-interrupted.Token.WaitHandle.WaitOne();
+try {
+    await outlet.Connect();
+} catch (SocketException e) {
+    Console.WriteLine($"Failed to connect due to SocketException: {e.Message}");
+    return;
+} catch (Exception e) {
+    Console.WriteLine($"Failed to connect due to {e.GetType().Name}: {e.Message}");
+    return;
+}
+
+// async void Callback(object? state) {
+//     PowerUsage usage = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
+//     logger.LogInformation("Current: {current} mA; Voltage: {voltage} mV; Power: {power} mW", usage.Current, usage.Voltage, usage.Power);
+//     // await outlet.System.SetIndicatorLightOn(isLightOn ^= true);
+// }
+//
+// await using Timer timer = new(Callback, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+//
+// using CancellationTokenSource interrupted = new();
+// Console.CancelKeyPress += (sender, eventArgs) => {
+//     eventArgs.Cancel = true;
+//     interrupted.Cancel();
+// };
+//
+// interrupted.Token.WaitHandle.WaitOne();
 
 // await outlet.System.SetIndicatorLightOn(true);
 // await Task.Delay(750);
@@ -37,23 +52,23 @@ interrupted.Token.WaitHandle.WaitOne();
 // await Task.Delay(750);
 // await outlet.System.SetIndicatorLightOn(true);
 
-// SystemInfo   systemInfo         = await outlet.System.GetInfo();
-// DateTime     currentDeviceTime  = await outlet.Time.GetTime();
+SystemInfo     systemInfo        = await outlet.System.GetInfo();
+DateTimeOffset currentDeviceTime = await outlet.Time.GetTimeWithZoneOffset();
 // TimeZoneInfo timeZoneInfo       = (await outlet.Time.GetTimeZones()).First();
-// bool         isOutletOn         = await outlet.System.IsOutletOn();
-// bool         isIndicatorLightOn = await outlet.System.IsIndicatorLightOn();
-// PowerUsage power = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
-//
-// logger.Info("{0} - {1}", systemInfo.Name, systemInfo.ModelName);
-// logger.Info("Host: {0}", outlet.Hostname);
-// logger.Info("Outlet state: {0}", isOutletOn ? "on" : "off");
-// logger.Info("Time: {0:G} ({1})", currentDeviceTime, timeZoneInfo.IsDaylightSavingTime(currentDeviceTime) ? timeZoneInfo.DaylightName : timeZoneInfo.StandardName);
-// logger.Info("Hardware version: {0}", systemInfo.HardwareVersion);
-// logger.Info("Software version: {0}", systemInfo.SoftwareVersion);
-// logger.Info("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.Rssi);
-// logger.Info("Indicator light: {0}", isIndicatorLightOn ? "on" : "off");
-// logger.Info("Mode: {0}", systemInfo.OperatingMode);
-// logger.Info("Energy usage: {0} mA, {1} mV, {2} mW, {3} Wh since boot", power.Current, power.Voltage, power.Power, power.CumulativeEnergySinceBoot);
+bool isOutletOn         = await outlet.System.IsOutletOn();
+bool isIndicatorLightOn = await outlet.System.IsIndicatorLightOn();
+// PowerUsage   power              = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
+
+logger.LogInformation("{0} - {1}", systemInfo.Name, systemInfo.ModelName);
+logger.LogInformation("Host: {0}", outlet.Hostname);
+logger.LogInformation("Outlet state: {0}", isOutletOn ? "on" : "off");
+logger.LogInformation("Time: {0:O}", currentDeviceTime);
+logger.LogInformation("Hardware version: {0}", systemInfo.HardwareVersion);
+logger.LogInformation("Software version: {0}", systemInfo.SoftwareVersion);
+logger.LogInformation("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.Rssi);
+logger.LogInformation("Indicator light: {0}", isIndicatorLightOn ? "on" : "off");
+logger.LogInformation("Mode: {0}", systemInfo.OperatingMode);
+// logger.LogInformation("Energy usage: {0} mA, {1} mV, {2} mW, {3} Wh since boot", power.Current, power.Voltage, power.Power, power.CumulativeEnergySinceBoot);
 
 /*CancellationTokenSource interrupted = new();
 while (!interrupted.IsCancellationRequested) {

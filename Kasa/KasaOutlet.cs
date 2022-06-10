@@ -9,15 +9,14 @@ namespace Kasa;
 
 /// <summary>
 /// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
-/// <para>You must call <see cref="Connect"/> on each instance before using it.</para>
+/// <para>You may optionally call <see cref="Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
-/// await outlet.Connect();
 /// bool isOutletOn = await outlet.System.IsOutletOn();
 /// if(!isOutletOn){
-///     await outlet.System.SetOutlet(true);
+///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
 public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands {
@@ -29,13 +28,37 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
 
     /// <inheritdoc />
     public ILoggerFactory? LoggerFactory {
-        get => _client.LoggerFactory;
-        set => _client.LoggerFactory = value;
+        get => _client.Options.LoggerFactory;
+        set => _client.Options.LoggerFactory = value;
+    }
+
+    /// <inheritdoc />
+    public uint MaxAttempts {
+        get => _client.Options.MaxAttempts;
+        set => _client.Options.MaxAttempts = value;
+    }
+
+    /// <inheritdoc />
+    public TimeSpan RetryDelay {
+        get => _client.Options.RetryDelay;
+        set => _client.Options.RetryDelay = value;
+    }
+
+    /// <inheritdoc />
+    public TimeSpan ReceiveTimeout {
+        get => _client.Options.ReceiveTimeout;
+        set => _client.Options.ReceiveTimeout = value;
+    }
+
+    /// <inheritdoc />
+    public TimeSpan SendTimeout {
+        get => _client.Options.SendTimeout;
+        set => _client.Options.SendTimeout = value;
     }
 
     /// <summary>
     /// <para>Construct a new instance of a <see cref="KasaClient"/> to talk to a Kasa device with the given hostname.</para>
-    /// <para>After constructing an instance, remember to call <see cref="Connect"/> to establish a TCP connection to the device before you send commands.</para>
+    /// <para>After constructing an instance, you may optionally call <see cref="Connect"/> to establish a TCP connection to the device before you send commands. If you don't, it will connect automatically when you send the first command.</para>
     /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
     /// <para>Remember to <see cref="Dispose()"/> each instance when you're done using it and want to disconnect from the TCP session. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
     /// </summary>
@@ -138,6 +161,16 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
             response["hour"]!.ToObject<int>(),
             response["min"]!.ToObject<int>(),
             response["sec"]!.ToObject<int>());
+    }
+
+    /// <inheritdoc />
+    async Task<DateTimeOffset> IKasaOutlet.ITimeCommands.GetTimeWithZoneOffset() {
+        IKasaOutlet.ITimeCommands @this = this;
+
+        DateTime                  localDate             = await @this.GetTime().ConfigureAwait(false);
+        IEnumerable<TimeZoneInfo> timeZonePossibilities = await @this.GetTimeZones().ConfigureAwait(false);
+
+        return new DateTimeOffset(localDate, timeZonePossibilities.First().GetUtcOffset(localDate));
     }
 
     /// <inheritdoc />
