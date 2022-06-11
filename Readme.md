@@ -10,6 +10,7 @@
 
 <!-- MarkdownTOC autolink="true" bracket="round" autoanchor="true" levels="1,2,3,4" bullets="1.,-,-,-" -->
 
+1. [Quick Start](#quick-start)
 1. [Prerequisites](#prerequisites)
 1. [Installation](#installation)
 1. [Configuration](#configuration)
@@ -41,6 +42,15 @@
 
 <!-- /MarkdownTOC -->
 </details>
+
+<a id="quick-start"></a>
+## Quick Start
+```cs
+using IKasaOutlet kasa = new KasaOutlet("192.168.1.100");
+if (!await kasa.System.IsOutletOn()) {
+    await kasa.System.SetOutletOn(true);
+}
+```
 
 <a id="prerequisites"></a>
 ## Prerequisites
