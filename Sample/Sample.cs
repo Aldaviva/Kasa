@@ -1,5 +1,4 @@
-﻿using System.Net.Sockets;
-using Kasa;
+﻿using Kasa;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 
@@ -11,24 +10,24 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .SetMinimumLevel(LogLevel.Trace)
     .AddNLog());
 
-ILogger logger = loggerFactory.CreateLogger("Main");
+// ILogger logger = loggerFactory.CreateLogger("Main");
 
-using IKasaOutlet outlet = new KasaOutlet("192.168.1.227") {
-    LoggerFactory  = loggerFactory,
-    SendTimeout    = TimeSpan.FromSeconds(2),
-    ReceiveTimeout = TimeSpan.FromSeconds(2),
-    MaxAttempts    = 2
+using IKasaOutlet kasa = new KasaOutlet("sx20.outlets.aldaviva.com") {
+    LoggerFactory = loggerFactory
 };
 
-try {
-    await outlet.Connect();
-} catch (SocketException e) {
-    Console.WriteLine($"Failed to connect due to SocketException: {e.Message}");
-    return;
-} catch (Exception e) {
-    Console.WriteLine($"Failed to connect due to {e.GetType().Name}: {e.Message}");
-    return;
-}
+DateTime dateTime = await kasa.Time.GetTime();
+Console.WriteLine($"Device time: {dateTime:F}");
+
+// try {
+//     await outlet.Connect();
+// } catch (SocketException e) {
+//     Console.WriteLine($"Failed to connect due to SocketException: {e.Message}");
+//     return;
+// } catch (Exception e) {
+//     Console.WriteLine($"Failed to connect due to {e.GetType().Name}: {e.Message}");
+//     return;
+// }
 
 // async void Callback(object? state) {
 //     PowerUsage usage = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
@@ -52,24 +51,37 @@ try {
 // await Task.Delay(750);
 // await outlet.System.SetIndicatorLightOn(true);
 
-SystemInfo     systemInfo        = await outlet.System.GetInfo();
-DateTimeOffset currentDeviceTime = await outlet.Time.GetTimeWithZoneOffset();
+// SystemInfo     systemInfo        = await outlet.System.GetInfo();
+// DateTimeOffset currentDeviceTime = await outlet.Time.GetTimeWithZoneOffset();
 // TimeZoneInfo timeZoneInfo       = (await outlet.Time.GetTimeZones()).First();
-bool isOutletOn         = await outlet.System.IsOutletOn();
-bool isIndicatorLightOn = await outlet.System.IsIndicatorLightOn();
+// bool isOutletOn         = await outlet.System.IsOutletOn();
+// bool isIndicatorLightOn = await outlet.System.IsIndicatorLightOn();
 // PowerUsage   power              = await outlet.EnergyMeter.GetInstantaneousPowerUsage();
 
-logger.LogInformation("{0} - {1}", systemInfo.Name, systemInfo.ModelName);
-logger.LogInformation("Host: {0}", outlet.Hostname);
-logger.LogInformation("Outlet state: {0}", isOutletOn ? "on" : "off");
-logger.LogInformation("Time: {0:O}", currentDeviceTime);
-logger.LogInformation("Hardware version: {0}", systemInfo.HardwareVersion);
-logger.LogInformation("Software version: {0}", systemInfo.SoftwareVersion);
-logger.LogInformation("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.Rssi);
-logger.LogInformation("Indicator light: {0}", isIndicatorLightOn ? "on" : "off");
-logger.LogInformation("Mode: {0}", systemInfo.OperatingMode);
+// logger.LogInformation("{0} - {1}", systemInfo.Name, systemInfo.ModelName);
+// logger.LogInformation("Host: {0}", outlet.Hostname);
+// logger.LogInformation("Outlet state: {0}", isOutletOn ? "on" : "off");
+// logger.LogInformation("Time: {0:O}", currentDeviceTime);
+// logger.LogInformation("Hardware version: {0}", systemInfo.HardwareVersion);
+// logger.LogInformation("Software version: {0}", systemInfo.SoftwareVersion);
+// logger.LogInformation("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.Rssi);
+// logger.LogInformation("Indicator light: {0}", isIndicatorLightOn ? "on" : "off");
+// logger.LogInformation("Mode: {0}", systemInfo.OperatingMode);
 // logger.LogInformation("Energy usage: {0} mA, {1} mV, {2} mW, {3} Wh since boot", power.Current, power.Voltage, power.Power, power.CumulativeEnergySinceBoot);
 
+// Console.WriteLine($"Name: {systemInfo.Name}");
+// Console.WriteLine($"Operating mode: {systemInfo.OperatingMode}");
+// Console.WriteLine($"Model name: {systemInfo.ModelName}");
+// Console.WriteLine($"Model family: {systemInfo.ModelFamily}");
+// Console.WriteLine($"RSSI: {systemInfo.Rssi}");
+// Console.WriteLine($"Features: {string.Join(", ", systemInfo.Features)}");
+// Console.WriteLine($"MAC address: {systemInfo.MacAddress}");
+// Console.WriteLine($"Device ID: {systemInfo.DeviceId}");
+// Console.WriteLine($"Updating: {systemInfo.Updating}");
+// Console.WriteLine($"Software version: {systemInfo.SoftwareVersion}");
+// Console.WriteLine($"Hardware version: {systemInfo.HardwareVersion}");
+// Console.WriteLine($"Hardware ID: {systemInfo.HardwareId}");
+// Console.WriteLine($"Oem ID: {systemInfo.OemId}");
 /*CancellationTokenSource interrupted = new();
 while (!interrupted.IsCancellationRequested) {
     try {

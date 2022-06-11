@@ -136,6 +136,12 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     }
 
     /// <inheritdoc />
+    async Task<string> IKasaOutlet.ISystemCommands.GetName() {
+        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
+        return systemInfo.Name;
+    }
+
+    /// <inheritdoc />
     Task IKasaOutlet.ISystemCommands.SetName(string name) {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 31) {
             throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive), and cannot be only whitespace");

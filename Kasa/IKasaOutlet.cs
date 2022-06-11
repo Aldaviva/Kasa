@@ -117,6 +117,14 @@ public interface IKasaOutlet: IOptions, IDisposable {
         Task Reboot(TimeSpan afterDelay = default);
 
         /// <summary>
+        /// <para>The name or alias of the device that you chose during setup.</para>
+        /// </summary>
+        /// <returns>The name of the device.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
+        Task<string> GetName();
+
+        /// <summary>
         /// <para>Change the alias of this device. This will appear in the Kasa mobile app.</para>
         /// </summary>
         /// <param name="name">The new name of the device. The maximum length is 31 characters.</param>
@@ -124,8 +132,6 @@ public interface IKasaOutlet: IOptions, IDisposable {
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
         Task SetName(string name);
-
-        // Task SetLocation(double latitude, double longitude);
 
     }
 
@@ -135,7 +141,7 @@ public interface IKasaOutlet: IOptions, IDisposable {
     public interface ITimeCommands {
 
         /// <summary>
-        /// <para>Get the current time from the device's internal clock.</para>
+        /// <para>Get the current local time from the device's internal clock.</para>
         /// </summary>
         /// <returns>The date and time of the device, in the device's current timezone.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
@@ -192,7 +198,11 @@ public interface IKasaOutlet: IOptions, IDisposable {
         /// </summary>
         /// <param name="year">the year to fetch historical data for, e.g. <c>2022</c></param>
         /// <param name="month">the month to fetch historical data for, where January is <c>1</c></param>
-        /// <returns>An array of integers, where the index is the day of the given month where the first day of the month has index <c>0</c>, and the value is the amount of energy used on that day, in watt-hours (W⋅h). If no historical data exists for that month, returns <c>null</c>.</returns>
+        /// <returns>
+        /// <para>An array of integers, in which the index is the day of the given month where the first day of the month has index <c>0</c>, and the value is the amount of energy used on that day in watt-hours (W⋅h).</para>
+        /// <para>The length of the array will be the total number of days in the given month, even if some of the days have no usage data or are in the future, which will be represented with the value <c>0</c>.</para>
+        /// <para>If no historical data exists for that month, returns <c>null</c>.</para>
+        /// </returns>
         /// <exception cref="FeatureUnavailable">If the device does not have an energy meter. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>

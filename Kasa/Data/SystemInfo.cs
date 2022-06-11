@@ -18,7 +18,7 @@ public struct SystemInfo {
     /// <para>The name or alias of the device that you chose during setup.</para>
     /// <para>You can change this value using <c>IKasaOutlet.System.SetName(string)</c>.</para>
     /// </summary>
-    [JsonProperty("alias")] public string Name { get; internal set; }
+    [JsonProperty("alias")] internal string Name { get; set; }
 
     /// <summary>
     /// The long marketing name of the family of devices. Not unique with respect to models, as both the Kasa EP10 and KP125 have <c>Smart Wi-Fi Plug Mini</c> as their model description. 
