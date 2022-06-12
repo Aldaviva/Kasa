@@ -31,3 +31,4 @@ _ReSharper*/
 .vs/
 #Nuget packages folder
 packages/
+/3D part/

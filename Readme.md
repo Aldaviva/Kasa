@@ -1,12 +1,13 @@
-<img src="https://raw.githubusercontent.com/Aldaviva/Kasa/master/Kasa/icon.png" height="23" alt="Kasa logo" /> Kasa
+Kasa
 ===
 
 [![Nuget](https://img.shields.io/nuget/v/Kasa?logo=nuget)](https://www.nuget.org/packages/Kasa/) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Aldaviva/Kasa/.NET?logo=github)](https://github.com/Aldaviva/Kasa/actions/workflows/dotnetpackage.yml) [![Coveralls](https://img.shields.io/coveralls/github/Aldaviva/Kasa?logo=coveralls)](https://coveralls.io/github/Aldaviva/Kasa?branch=master)
 
 *Control TP-Link Kasa smart outlets/plugs*
 
+<p>
 <details>
-    <summary>Table of contents</summary>
+    <summary>Table of Contents</summary>
 
 <!-- MarkdownTOC autolink="true" bracket="round" autoanchor="true" levels="1,2,3,4" bullets="1.,-,-,-" -->
 
@@ -42,6 +43,9 @@
 
 <!-- /MarkdownTOC -->
 </details>
+</p>
+
+![Kasa EP10](https://i.imgur.com/jaOzRzh.jpg)
 
 <a id="quick-start"></a>
 ## Quick Start
@@ -78,12 +82,13 @@ You can install this library into your project from [NuGet Gallery](https://www.
 
 1. Connect your Kasa device to your wi-fi network.
     - You can do this with the [Kasa Smart app for Android](https://play.google.com/store/apps/details?id=com.tplink.kasa_android) and [iOS](https://apps.apple.com/us/app/kasa-smart/id1034035493).
-1. Get your device's hostname, which can be either an IP address or FQDN.
-    - You can find it in your router's client or DHCP list. The MAC address will match the one printed on the device and shown in Device Info in the Kasa Smart app, and the hostname will be the model name, such as `EP10`.
+1. Get your device's hostname.
+    - You can find its IP address in your router's client or DHCP lists. The MAC address will match the one printed on the device and shown in Device Info in the Kasa Smart app.
     - You can also scan for servers exposing TCP port 9999.
         ```sh
         nmap --open -pT:9999 192.168.1.0/24
         ```
+    - You can also use its FQDN if you assigned one.
 1. Construct a new **`KasaOutlet`** instance in your project, passing the device's hostname as a constructor parameter.
     ```cs
     using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100");
@@ -457,7 +462,7 @@ Some methods also throw other exceptions in specific cases, such as `ArgumentOut
 
 <a id="references"></a>
 ## References
-- [`tplink-smarthome-commands.txt`](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*
+- [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*
 - [Reverse Engineering the TP-Link HS110](https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/) — *Lubomir Stroetmann and Tobias Esser*
 - [Controlling the TP-LINK HS100 Wi-Fi smart plug](https://blog.georgovassilis.com/2016/05/07/controlling-the-tp-link-hs100-wi-fi-smart-plug/) — *George Georgovassilis, Thomas Baust*
 - [python-kasa](https://github.com/python-kasa/python-kasa)
