@@ -16,10 +16,7 @@ internal class Retrier {
                                        Action?                beforeRetry    = null) {
         Exception? exception = null;
         for (int attempt = 0; !maxAttempts.HasValue || attempt < maxAttempts || (attempt == 0 && maxAttempts == 0); attempt++) {
-            try {
-                action.Invoke();
-            } catch (Exception e)when (e is not OutOfMemoryException) {
-                exception = e;
+            if (exception != null) {
                 if (isRetryAllowed?.Invoke(exception) ?? true) {
                     if (GetDelay(delay, attempt) is { } duration) {
                         Thread.Sleep(duration);
@@ -29,6 +26,12 @@ internal class Retrier {
                 } else {
                     break;
                 }
+            }
+
+            try {
+                action.Invoke();
+            } catch (Exception e)when (e is not OutOfMemoryException) {
+                exception = e;
             }
         }
 
@@ -43,10 +46,7 @@ internal class Retrier {
                                        Action?                beforeRetry    = null) {
         Exception? exception = null;
         for (int attempt = 0; !maxAttempts.HasValue || attempt < maxAttempts || (attempt == 0 && maxAttempts == 0); attempt++) {
-            try {
-                return action.Invoke();
-            } catch (Exception e)when (e is not OutOfMemoryException) {
-                exception = e;
+            if (exception != null) {
                 if (isRetryAllowed?.Invoke(exception) ?? true) {
                     if (GetDelay(delay, attempt) is { } duration) {
                         Thread.Sleep(duration);
@@ -56,6 +56,12 @@ internal class Retrier {
                 } else {
                     break;
                 }
+            }
+
+            try {
+                return action.Invoke();
+            } catch (Exception e)when (e is not OutOfMemoryException) {
+                exception = e;
             }
         }
 
@@ -70,11 +76,7 @@ internal class Retrier {
                                              Func<Task>?            beforeRetry    = null) {
         Exception? exception = null;
         for (int attempt = 0; !maxAttempts.HasValue || attempt < maxAttempts || (attempt == 0 && maxAttempts == 0); attempt++) {
-            try {
-                await action.Invoke().ConfigureAwait(false);
-                return;
-            } catch (Exception e)when (e is not OutOfMemoryException) {
-                exception = e;
+            if (exception != null) {
                 if (isRetryAllowed?.Invoke(exception) ?? true) {
                     if (GetDelay(delay, attempt) is { } duration) {
                         await Task.Delay(duration).ConfigureAwait(false);
@@ -84,6 +86,13 @@ internal class Retrier {
                 } else {
                     break;
                 }
+            }
+
+            try {
+                await action.Invoke().ConfigureAwait(false);
+                return;
+            } catch (Exception e)when (e is not OutOfMemoryException) {
+                exception = e;
             }
         }
 
@@ -98,10 +107,7 @@ internal class Retrier {
                                                    Func<Task>?            beforeRetry    = null) {
         Exception? exception = null;
         for (int attempt = 0; !maxAttempts.HasValue || attempt < maxAttempts || (attempt == 0 && maxAttempts == 0); attempt++) {
-            try {
-                return await action.Invoke().ConfigureAwait(false);
-            } catch (Exception e) when (e is not OutOfMemoryException) {
-                exception = e;
+            if (exception != null) {
                 if (isRetryAllowed?.Invoke(exception) ?? true) {
                     if (GetDelay(delay, attempt) is { } duration) {
                         await Task.Delay(duration).ConfigureAwait(false);
@@ -111,6 +117,12 @@ internal class Retrier {
                 } else {
                     break;
                 }
+            }
+
+            try {
+                return await action.Invoke().ConfigureAwait(false);
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                exception = e;
             }
         }
 

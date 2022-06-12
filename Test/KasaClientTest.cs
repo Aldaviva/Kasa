@@ -4,8 +4,6 @@ using System.Text;
 using FakeItEasy;
 using FluentAssertions;
 using Kasa;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Test;
@@ -13,6 +11,10 @@ namespace Test;
 public class KasaClientTest {
 
     private readonly KasaClient _client = new TestableKasaClient("localhost");
+
+    public KasaClientTest() {
+        _client.Options.MaxAttempts = 1;
+    }
 
     [Fact]
     public void Hostname() {
@@ -53,25 +55,27 @@ public class KasaClientTest {
     public void DeserializeInvalidJson() {
         byte[] responseBytes = { 0x00, 0x00, 0x00, 0x01, 0x00 };
         Action thrower       = () => _client.Deserialize<JObject>(responseBytes, 1, CommandFamily.System, "test");
-        thrower.Should().Throw<JsonReaderException>();
+        thrower.Should().Throw<ResponseParsingException>();
     }
 
     [Fact]
     public void DeserializeMissingFeature() {
         IEnumerable<byte> responseBytes = Convert.FromBase64String("AAAAOdDyl/qf64783uSfvdiq2Ifki++KqJK/jqKA5Zflutekw+Hb+ZT7n+qG48OtwraW5ZDgkP+N+dum2w==");
         Action            thrower       = () => _client.Deserialize<JObject>(responseBytes, 1, CommandFamily.EnergyMeter, "get_realtime");
-        thrower.Should().Throw<InvalidOperationException>();
+        thrower.Should().Throw<FeatureUnavailable>();
     }
 
     [Fact]
     public async Task Send() {
-        A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+        Stream fakeStream = await _client.GetNetworkStream();
+
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(new byte[] { 0x00, 0x00, 0x00, 0x29 }, 0, destination, offset, length);
             return Task.FromResult(length);
         });
 
         byte[] responseAfterHeader = Convert.FromBase64String("0PKB+Iv/mvfV75S2xaDUi+eC5rnWsNb0zrWX8oDyrc6hxaCCuIj1iPU=");
-        A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 0x29, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 0x29, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(responseAfterHeader, 0, destination, offset, length);
             return Task.FromResult(length);
         });
@@ -79,49 +83,52 @@ public class KasaClientTest {
         JObject actual = await _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
 
         byte[] expectedRequest = Convert.FromBase64String("AAAAJNDygfiL/5r31e+UtsWg1Ivngua51rDW9M61l/ie+Nrg0K3QrQ==");
-        A.CallTo(() => _client.GetNetworkStream().WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedRequest), 0, expectedRequest.Length, A<CancellationToken>._)).MustHaveHappened();
+        A.CallTo(() => fakeStream.WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedRequest), 0, expectedRequest.Length, A<CancellationToken>._)).MustHaveHappened();
 
         actual.Should().BeEquivalentTo(JObject.Parse(@"{""err_code"":0}"));
     }
 
     [Fact]
     public async Task SendHeaderTooShort() {
-        A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+        Stream fakeStream = await _client.GetNetworkStream();
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(new byte[] { 0x00, 0x00, 0x00 }, 0, destination, offset, 3);
             return Task.FromResult(3);
         });
 
         Func<Task> thrower = async () => await _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
-        await thrower.Should().ThrowAsync<IOException>();
+        await thrower.Should().ThrowAsync<NetworkException>();
     }
 
     [Fact]
     public async Task SendResponsePayloadTooShort() {
-        A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+        Stream fakeStream = await _client.GetNetworkStream();
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(new byte[] { 0x00, 0x00, 0x00, 0x29 }, 0, destination, offset, length);
             return Task.FromResult(length);
         });
 
         byte[] responseAfterHeader = { 0x00 };
-        A.CallTo(() => _client.GetNetworkStream().ReadAsync(A<byte[]>._, 0, 0x29, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 0x29, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
             Array.Copy(responseAfterHeader, 0, destination, offset, 1);
             return Task.FromResult(1);
         });
 
         Func<Task> thrower = async () => await _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
-        await thrower.Should().ThrowAsync<IOException>();
+        await thrower.Should().ThrowAsync<NetworkException>();
     }
 
     [Fact]
     public async Task EnsureConnected() {
         (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
 
-        kasaClient.EnsureConnected();
+        await kasaClient.EnsureConnected();
         await Task.Delay(100);
         kasaClient.Connected.Should().BeTrue();
         serverSocket.Value.Should().NotBeNull();
         serverSocket.Value!.Client.Connected.Should().BeTrue();
-        kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
+        Stream networkStream = await kasaClient.GetNetworkStream();
+        networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
 
         // Func<Task<JObject>> send = () => new KasaClient("localhost").Send<JObject>(CommandFamily.System, "myMethod");
         // await send.Should().ThrowAsync<InvalidOperationException>();
@@ -142,12 +149,13 @@ public class KasaClientTest {
         kasaClient.Connected.Should().BeTrue();
         serverSocket.Value.Should().NotBeNull();
         serverSocket.Value!.Client.Connected.Should().BeTrue();
-        kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
+        Stream networkStream = await kasaClient.GetNetworkStream();
+        networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
 
-        //TODO this doesn't actually exercise the Socket.Disconnect() call in EnsureConnected(). Disconnect() is required, because it fails in real-life scenarios, but I can't synthesize it with my in-process test TCP server. Maybe .NET's Socket implementation is always polite enough to send FIN on shutdown, but the Kasa TCP server just crashes itself on reboot?
+        // This doesn't actually exercise the Socket.Disconnect() call in EnsureConnected(). Disconnect() is required, because it fails in real-life scenarios, but I can't synthesize it with my in-process test TCP server. Maybe .NET's Socket implementation is always polite enough to send FIN on shutdown, but the Kasa TCP server just crashes itself on reboot?
         serverSocket.Value.Client.Close();
 
-        kasaClient.EnsureConnected();
+        await kasaClient.EnsureConnected();
         await Task.Delay(100);
         kasaClient.Connected.Should().BeTrue();
 
@@ -176,28 +184,20 @@ public class KasaClientTest {
         kasaClient.Connected.Should().BeTrue();
         serverSocket.Value.Should().NotBeNull();
         serverSocket.Value!.Client.Connected.Should().BeTrue();
-        kasaClient.GetNetworkStream().Should().NotBeNull().And.BeOfType<NetworkStream>();
+        Stream networkStream = await kasaClient.GetNetworkStream();
+        networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
 
-        Action assertConnected = () => kasaClient.EnsureConnected();
-        assertConnected.Should().NotThrow();
+        Func<Task> assertConnected = async () => await kasaClient.EnsureConnected();
+        await assertConnected.Should().NotThrowAsync();
 
         Func<Task> connect = async () => await kasaClient.Connect();
-        await connect.Should().ThrowAsync<InvalidOperationException>("already connected");
+        await connect.Should().NotThrowAsync();
 
         kasaClient.Dispose();
         kasaClient.Connected.Should().BeFalse();
 
         serverSocket.Value.Close();
         server.Stop();
-    }
-
-    [Fact]
-    public void Logging() {
-        _client.LoggerFactory.Should().BeNull();
-
-        ILoggerFactory loggerFactory = A.Fake<ILoggerFactory>();
-        _client.LoggerFactory = loggerFactory;
-        _client.LoggerFactory.Should().BeSameAs(loggerFactory);
     }
 
     private static (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) StartTestServer(ushort? desiredPort = null) {
@@ -231,12 +231,13 @@ internal class TestableKasaClient: KasaClient {
 
     public TestableKasaClient(string hostname): base(hostname) { }
 
-    protected internal override void EnsureConnected() {
+    protected internal override Task EnsureConnected(bool forceReconnect = false) {
         // we're not actually connected during most tests, so don't throw
+        return Task.CompletedTask;
     }
 
-    internal override Stream GetNetworkStream() {
-        return _networkStream;
+    internal override Task<Stream> GetNetworkStream() {
+        return Task.FromResult(_networkStream);
     }
 
 }

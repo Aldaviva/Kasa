@@ -1,7 +1,6 @@
 ﻿using FakeItEasy;
 using FluentAssertions;
 using Kasa;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace Test;
@@ -228,18 +227,6 @@ public class KasaOutletTest {
     public async Task ClearHistoricalUsage() {
         await _outlet.EnergyMeter.DeleteHistoricalUsage();
         A.CallTo(() => _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat", null)).MustHaveHappened();
-    }
-
-    [Fact]
-    public void Logging() {
-        _outlet.LoggerFactory.Should().BeSameAs(_client.LoggerFactory);
-        ILoggerFactory loggerFactory = A.Fake<ILoggerFactory>();
-
-        _outlet.LoggerFactory = loggerFactory;
-
-        _outlet.LoggerFactory.Should().BeSameAs(loggerFactory);
-        A.CallToSet(() => _client.LoggerFactory).To(loggerFactory).MustHaveHappened();
-        _outlet.LoggerFactory.Should().BeSameAs(_client.LoggerFactory);
     }
 
 }
