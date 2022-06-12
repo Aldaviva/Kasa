@@ -85,7 +85,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
 
     /// <summary>
     /// <para>Disconnects and disposes the TCP client.</para>
-    /// <para>Subclasses should call this base method in their overriding <c>Dispose</c> implementations.</para>
+    /// <para>Subclasses should call this base method with <c>disposing = true</c> in their overriding <c>Dispose</c> implementations.</para>
     /// </summary>
     /// <param name="disposing"><c>true</c> to dispose the TCP client, <c>false</c> if you're running in a finalizer and it's already been disposed</param>
     protected virtual void Dispose(bool disposing) {

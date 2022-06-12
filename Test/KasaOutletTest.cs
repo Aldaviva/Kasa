@@ -1,6 +1,8 @@
 ﻿using FakeItEasy;
 using FluentAssertions;
 using Kasa;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json.Linq;
 
 namespace Test;
@@ -90,6 +92,17 @@ public class KasaOutletTest {
     }
 
     [Fact]
+    public async Task GetName() {
+        A.CallTo(() => _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null)).Returns(new SystemInfo {
+            Name = "SX20"
+        });
+
+        string actual = await _outlet.System.GetName();
+
+        actual.Should().Be("SX20");
+    }
+
+    [Fact]
     public async Task SetName() {
         await _outlet.System.SetName("abc");
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>.That.HasProperty("alias", "abc"))).MustHaveHappened();
@@ -125,6 +138,16 @@ public class KasaOutletTest {
         A.CallTo(() => _client.Send<JObject>(CommandFamily.Time, "get_timezone", null)).Returns(json);
         IEnumerable<TimeZoneInfo> actual = await _outlet.Time.GetTimeZones();
         actual.Should().Contain(info => info.Id == windowsZoneId);
+    }
+
+    [Fact]
+    public async Task GetTimeZoneWithOffset() {
+        A.CallTo(() => _client.Send<JObject>(CommandFamily.Time, "get_time", null)).Returns(JObject.Parse(@"{""year"":2022,""month"":5,""mday"":29,""hour"":22,""min"":33,""sec"":22}"));
+        A.CallTo(() => _client.Send<JObject>(CommandFamily.Time, "get_timezone", null)).Returns(new JObject(new JProperty("index", 6)));
+
+        DateTimeOffset actual = await _outlet.Time.GetTimeWithZoneOffset();
+
+        actual.Should().Be(new DateTimeOffset(2022, 5, 29, 22, 33, 22, TimeSpan.FromHours(-7)));
     }
 
     [Theory]
@@ -227,6 +250,28 @@ public class KasaOutletTest {
     public async Task ClearHistoricalUsage() {
         await _outlet.EnergyMeter.DeleteHistoricalUsage();
         A.CallTo(() => _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat", null)).MustHaveHappened();
+    }
+
+    [Fact]
+    public void Options() {
+        KasaClient       client = new("127.0.0.1");
+        using KasaOutlet outlet = new(client);
+
+        ILoggerFactory loggerFactory = new NullLoggerFactory();
+        outlet.LoggerFactory = loggerFactory;
+        outlet.LoggerFactory.Should().BeSameAs(loggerFactory);
+
+        outlet.MaxAttempts = 8;
+        outlet.MaxAttempts.Should().Be(8);
+
+        outlet.ReceiveTimeout = TimeSpan.FromSeconds(17);
+        outlet.ReceiveTimeout.Should().Be(TimeSpan.FromSeconds(17));
+
+        outlet.SendTimeout = TimeSpan.FromSeconds(17);
+        outlet.SendTimeout.Should().Be(TimeSpan.FromSeconds(17));
+
+        outlet.RetryDelay = TimeSpan.FromSeconds(88);
+        outlet.RetryDelay.Should().Be(TimeSpan.FromSeconds(88));
     }
 
 }

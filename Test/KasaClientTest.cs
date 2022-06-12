@@ -4,13 +4,14 @@ using System.Text;
 using FakeItEasy;
 using FluentAssertions;
 using Kasa;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Test;
 
 public class KasaClientTest {
 
-    private readonly KasaClient _client = new TestableKasaClient("localhost");
+    private readonly KasaClient _client = new TestableKasaClient("0.0.0.0"); //allows RetryConnect() to fail faster than if this is 127.0.0.1
 
     public KasaClientTest() {
         _client.Options.MaxAttempts = 1;
@@ -18,7 +19,7 @@ public class KasaClientTest {
 
     [Fact]
     public void Hostname() {
-        _client.Hostname.Should().Be("localhost");
+        _client.Hostname.Should().Be("0.0.0.0");
     }
 
     [Fact]
@@ -130,9 +131,6 @@ public class KasaClientTest {
         Stream networkStream = await kasaClient.GetNetworkStream();
         networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
 
-        // Func<Task<JObject>> send = () => new KasaClient("localhost").Send<JObject>(CommandFamily.System, "myMethod");
-        // await send.Should().ThrowAsync<InvalidOperationException>();
-
         kasaClient.Dispose();
         kasaClient.Connected.Should().BeFalse();
 
@@ -171,8 +169,57 @@ public class KasaClientTest {
         KasaClient kasaClient = new("localhost");
         kasaClient.Dispose();
         Func<Task> connect = () => kasaClient.Connect();
-        connect.Should().ThrowAsync<InvalidOperationException>("already disposed");
+        connect.Should().ThrowExactlyAsync<ObjectDisposedException>();
     }
+
+    [Fact]
+    public void AutoconnectFailsIfAlreadyDisposed() {
+        KasaClient kasaClient = new("localhost");
+        kasaClient.Dispose();
+        Func<Task> thrower = () => kasaClient.EnsureConnected();
+        thrower.Should().ThrowExactlyAsync<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void EnsureConnectedFailsIfAlreadyDisposed() {
+        KasaClient kasaClient = new("localhost");
+        kasaClient.Dispose();
+        Func<Task> thrower = () => kasaClient.EnsureConnected();
+        thrower.Should().ThrowExactlyAsync<ObjectDisposedException>();
+    }
+    //
+    // [Fact]
+    // public async Task AutoReconnect() {
+    //     (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+    //     kasaClient.Connected.Should().BeFalse();
+    //
+    //     await kasaClient.Connect();
+    //     await Task.Delay(100);
+    //     kasaClient.Connected.Should().BeTrue();
+    //     serverSocket.Value.Should().NotBeNull();
+    //     serverSocket.Value!.Client.Connected.Should().BeTrue();
+    //     Stream networkStream = await kasaClient.GetNetworkStream();
+    //     networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
+    //
+    //     await kasaClient.EnsureConnected(true);
+    //     await Task.Delay(100);
+    //     kasaClient.Connected.Should().BeTrue();
+    //     serverSocket.Value.Should().NotBeNull();
+    //     serverSocket.Value!.Client.Connected.Should().BeTrue();
+    //     networkStream = await kasaClient.GetNetworkStream();
+    //     networkStream.Should().NotBeNull().And.BeOfType<NetworkStream>();
+    //
+    //     serverSocket.Value?.Close();
+    //     server.Stop();
+    // }
+
+    //
+    // [Fact]
+    // public void EnsureConnectedIgnoresSocketExceptionWhileDisconnecting() {
+    //     KasaClient kasaClient = new("0.0.0.0");
+    //     Func<Task> thrower    = () => kasaClient.EnsureConnected(true);
+    //     thrower.Should().ThrowExactlyAsync<SocketException>();
+    // }
 
     [Fact]
     public async Task Connect() {
@@ -200,6 +247,21 @@ public class KasaClientTest {
         server.Stop();
     }
 
+    [Fact]
+    public async Task RetryConnect() {
+        _client.Options = new Options { MaxAttempts = 2, RetryDelay = TimeSpan.Zero, SendTimeout = TimeSpan.Zero, ReceiveTimeout = TimeSpan.Zero };
+        Func<Task> thrower = async () => await _client.Connect();
+        await thrower.Should().ThrowAsync<NetworkException>();
+    }
+
+    [Fact]
+    public async Task RetrySend() {
+        KasaClient client = new("0.0.0.0");
+        client.Options = new Options { MaxAttempts = 2, RetryDelay = TimeSpan.Zero, SendTimeout = TimeSpan.Zero, ReceiveTimeout = TimeSpan.Zero };
+        Func<Task> thrower = async () => await client.Send<JObject>(CommandFamily.System, "test");
+        await thrower.Should().ThrowAsync<NetworkException>();
+    }
+
     private static (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) StartTestServer(ushort? desiredPort = null) {
         TcpListener? server     = null;
         ushort?      serverPort = desiredPort;
@@ -209,7 +271,7 @@ public class KasaClientTest {
             try {
                 server.Start();
             } catch (SocketException e) {
-                if (e.ErrorCode != 10013) { //WSAEACCES, already in use
+                if (e.SocketErrorCode != SocketError.AccessDenied) { // already in use
                     throw;
                 }
 
@@ -221,6 +283,17 @@ public class KasaClientTest {
         server!.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
         KasaClient kasaClient = new("localhost") { Port = serverPort!.Value };
         return (server, serverPort.Value, tcpServerSocket, kasaClient);
+    }
+
+    [Fact]
+    public void IsRetryAllowed() {
+        KasaClient.IsRetryAllowed(new ObjectDisposedException(null)).Should().BeFalse();
+        KasaClient.IsRetryAllowed(new SocketException((int) SocketError.HostNotFound)).Should().BeFalse();
+        KasaClient.IsRetryAllowed(new SocketException((int) SocketError.TimedOut)).Should().BeTrue();
+        KasaClient.IsRetryAllowed(new SocketException((int) SocketError.ConnectionRefused)).Should().BeTrue();
+        KasaClient.IsRetryAllowed(new IOException(null)).Should().BeTrue();
+        KasaClient.IsRetryAllowed(new FeatureUnavailable("method", Feature.EnergyMeter, "host")).Should().BeFalse();
+        KasaClient.IsRetryAllowed(new ResponseParsingException("method", "<invalid json>", typeof(JObject), "host", new JsonReaderException())).Should().BeFalse();
     }
 
 }

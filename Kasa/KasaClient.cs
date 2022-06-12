@@ -24,7 +24,7 @@ internal class KasaClient: IKasaClient {
     private static readonly  Encoding       Encoding       = Encoding.UTF8;
     internal static readonly JsonSerializer JsonSerializer = new();
 
-    private readonly TcpClient _tcpClient;
+    private TcpClient _tcpClient;
 
     private  ILogger<KasaClient> _logger    = new NullLogger<KasaClient>();
     internal ushort              Port       = 9999;
@@ -65,37 +65,47 @@ internal class KasaClient: IKasaClient {
     }
 
     /// <inheritDoc />
-    public Task Connect() {
-        if (_tcpClient.Connected) {
-            return Task.CompletedTask;
-        } else if (_disposed) {
-            throw new ObjectDisposedException(nameof(KasaClient), $"Already disposed, please construct a new {nameof(KasaOutlet)} instance instead");
-        }
+    // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
+    public async Task Connect() {
+        await TcpMutex.WaitAsync().ConfigureAwait(false);
+        try {
+            if (_tcpClient.Connected) {
+                return;
+            } else if (_disposed) {
+                throw new ObjectDisposedException(nameof(KasaClient), $"Already disposed, please construct a new {nameof(KasaOutlet)} instance instead");
+            }
 
-        _logger.LogDebug("Connecting to Kasa device {host}:{port}", Hostname, Port);
+            _logger.LogDebug("Connecting to Kasa device {host}:{port}", Hostname, Port);
 
-        // try {
-        //     return _tcpClient.ConnectAsync(Hostname, Port);
-        // } catch (SocketException e) {
-        //     Console.WriteLine(e);
-        //     throw;
-        // }
+            // try {
+            //     return _tcpClient.ConnectAsync(Hostname, Port);
+            // } catch (SocketException e) {
+            //     Console.WriteLine(e);
+            //     throw;
+            // }
+
+            Task Attempt() => _tcpClient.ConnectAsync(Hostname, Port);
 
 #pragma warning disable Ex0100 // Member may throw undocumented exception
-        return Retrier.InvokeWithRetry(() => _tcpClient.ConnectAsync(Hostname, Port), Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed, () => EnsureConnected(true));
+            await Retrier.InvokeWithRetry(Attempt, Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed).ConfigureAwait(false);
 #pragma warning restore Ex0100 // Member may throw undocumented exception
+        } catch (SocketException e) {
+            throw new NetworkException("The TCP socket failed to connect", Hostname, e);
+        } finally {
+            TcpMutex.Release();
+        }
     }
 
     /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
     /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
     public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
-        // await EnsureConnected().ConfigureAwait(false); //already connecting in GetNetworkStream() below
         await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
         try {
+            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters);
+
 #pragma warning disable Ex0100 // Member may throw undocumented exception
-            return await Retrier.InvokeWithRetry(() => SendWithoutRetry<T>(commandFamily, methodName, parameters), Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed)
-                .ConfigureAwait(false);
+            return await Retrier.InvokeWithRetry(Attempt, Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed).ConfigureAwait(false);
 #pragma warning restore Ex0100 // Member may throw undocumented exception
         } catch (SocketException e) {
             throw new NetworkException("The TCP socket failed to connect", Hostname, e);
@@ -222,23 +232,33 @@ internal class KasaClient: IKasaClient {
 
         Socket socket = _tcpClient.Client;
         if (!socket.Connected || forceReconnect) {
-            try {
+            /*try {
                 // If the server vanished without closing the connection (e.g. reboot), we need to manually disconnect the socket before reconnecting it, otherwise we will get "InvalidOperationException: The operation is not allowed on non-connected sockets."
                 // socket.DisconnectAsync()
-                // socket.Disconnect(true);
+                // socket.Shutdown(SocketShutdown.Both);
+                socket.Disconnect(true);
 
-                _logger.LogDebug("Disconnecting from Kasa device {host}:{port}", Hostname, Port);
+                // _logger.LogDebug("Disconnecting from Kasa device {host}:{port}", Hostname, Port);
                 await Task.Factory.FromAsync(socket.BeginDisconnect, socket.EndDisconnect, true, null).ConfigureAwait(false);
 
-            } catch (SocketException) {
+            } catch (Exception e) when (e is SocketException or WebException) {
+                // } catch (SocketException) {
                 //socket has not been connected before, continue to connect for the first time
-            } catch (WebException) {
+                // Console.WriteLine();
+                // } catch (WebException) {
                 //timed out, try to connect again
-            }
+                // Console.WriteLine();
+                // } catch (Exception e) {
+                //     Console.WriteLine(e);
+            }*/
+
+            _tcpClient.Dispose();
+            _tcpClient = new TcpClient(AddressFamily.InterNetwork);
 
             // SocketAsyncEventArgs e = new() { RemoteEndPoint = new DnsEndPoint(Hostname, Port) };
             _logger.LogDebug("Connecting to Kasa device {host}:{port}", Hostname, Port);
-            await Task.Factory.FromAsync(socket.BeginConnect, socket.EndConnect, Hostname, (int) Port, null).ConfigureAwait(false);
+            await _tcpClient.ConnectAsync(Hostname, Port).ConfigureAwait(false);
+            // await Task.Factory.FromAsync(socket.BeginConnect, socket.EndConnect, Hostname, (int) Port, null).ConfigureAwait(false);
 
             // if (socket.ConnectAsync(e)) {
             //     ManualResetEventSlim connected = new();
@@ -262,7 +282,7 @@ internal class KasaClient: IKasaClient {
         }
     }
 
-    private static bool IsRetryAllowed(Exception exception) => exception switch {
+    internal static bool IsRetryAllowed(Exception exception) => exception switch {
         ObjectDisposedException                                            => false, // consumer reused object from this library after disposing it, retries would fail anyway, improper usage
         SocketException { SocketErrorCode: SocketError.HostNotFound }      => false, // mistyped hostname, possibly invalid
         SocketException { SocketErrorCode: SocketError.TimedOut }          => true,  // no such IP address, might be rebooting

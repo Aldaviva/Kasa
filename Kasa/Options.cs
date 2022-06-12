@@ -67,9 +67,10 @@ public class Options: IOptions, INotifyPropertyChanged {
     public ILoggerFactory? LoggerFactory {
         get => _loggerFactory;
         set {
-            if (Equals(value, _loggerFactory)) return;
-            _loggerFactory = value;
-            OnPropertyChanged();
+            if (!Equals(value, _loggerFactory)) {
+                _loggerFactory = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -77,9 +78,10 @@ public class Options: IOptions, INotifyPropertyChanged {
     public uint MaxAttempts {
         get => _maxAttempts;
         set {
-            if (value == _maxAttempts) return;
-            _maxAttempts = value;
-            OnPropertyChanged();
+            if (value != _maxAttempts) {
+                _maxAttempts = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -87,9 +89,10 @@ public class Options: IOptions, INotifyPropertyChanged {
     public TimeSpan RetryDelay {
         get => _retryDelay;
         set {
-            if (value.Equals(_retryDelay)) return;
-            _retryDelay = value;
-            OnPropertyChanged();
+            if (!value.Equals(_retryDelay)) {
+                _retryDelay = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -97,9 +100,10 @@ public class Options: IOptions, INotifyPropertyChanged {
     public TimeSpan ReceiveTimeout {
         get => _receiveTimeout;
         set {
-            if (value.Equals(_receiveTimeout)) return;
-            _receiveTimeout = value;
-            OnPropertyChanged();
+            if (!value.Equals(_receiveTimeout)) {
+                _receiveTimeout = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -107,9 +111,10 @@ public class Options: IOptions, INotifyPropertyChanged {
     public TimeSpan SendTimeout {
         get => _sendTimeout;
         set {
-            if (value.Equals(_sendTimeout)) return;
-            _sendTimeout = value;
-            OnPropertyChanged();
+            if (!value.Equals(_sendTimeout)) {
+                _sendTimeout = value;
+                OnPropertyChanged();
+            }
         }
     }
 
