@@ -121,7 +121,7 @@ public class KasaClientTest {
 
     [Fact]
     public async Task EnsureConnected() {
-        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+        (TcpListener server, ushort _, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
 
         await kasaClient.EnsureConnected();
         await Task.Delay(100);
@@ -140,7 +140,7 @@ public class KasaClientTest {
 
     [Fact]
     public async Task Reconnect() {
-        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+        (TcpListener server, ushort _, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
 
         await kasaClient.Connect();
         await Task.Delay(100);
@@ -223,7 +223,7 @@ public class KasaClientTest {
 
     [Fact]
     public async Task Connect() {
-        (TcpListener server, ushort serverPort, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
+        (TcpListener server, ushort _, Wrapper<TcpClient?> serverSocket, KasaClient kasaClient) = StartTestServer();
         kasaClient.Connected.Should().BeFalse();
 
         await kasaClient.Connect();
@@ -256,8 +256,9 @@ public class KasaClientTest {
 
     [Fact]
     public async Task RetrySend() {
-        KasaClient client = new("0.0.0.0");
-        client.Options = new Options { MaxAttempts = 2, RetryDelay = TimeSpan.Zero, SendTimeout = TimeSpan.Zero, ReceiveTimeout = TimeSpan.Zero };
+        KasaClient client = new("0.0.0.0") {
+            Options = new Options { MaxAttempts = 2, RetryDelay = TimeSpan.Zero, SendTimeout = TimeSpan.Zero, ReceiveTimeout = TimeSpan.Zero }
+        };
         Func<Task> thrower = async () => await client.Send<JObject>(CommandFamily.System, "test");
         await thrower.Should().ThrowAsync<NetworkException>();
     }

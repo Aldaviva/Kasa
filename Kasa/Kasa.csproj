@@ -1,16 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <IncludeSource>true</IncludeSource>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>1701,1702</NoWarn>
-
         <Version>0.0.0</Version>
         <Title>Kasa</Title>
         <PackageId>Kasa</PackageId>
@@ -21,10 +11,20 @@
         <Copyright>© 2022 Ben Hutchison</Copyright>
         <RepositoryUrl>https://github.com/Aldaviva/Kasa.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>tp-link kasa smart-home home-automation smart plug outlet ep10 hs103 hs105 kp125 kp115</PackageTags>
+        <PackageTags>tplink kasa smart-home home-automation smart electrical power plug outlet ep10 kp125</PackageTags>
         <PackageProjectUrl>https://github.com/Aldaviva/Kasa</PackageProjectUrl>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageIcon>icon.png</PackageIcon>
+
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <IncludeSource>true</IncludeSource>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>1701,1702</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
