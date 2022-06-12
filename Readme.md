@@ -5,8 +5,7 @@ Kasa
 
 *Control TP-Link Kasa smart outlets/plugs*
 
-<p>
-<details>
+<p><details>
     <summary><strong>Table of Contents</strong></summary>
 
 <!-- MarkdownTOC autolink="true" bracket="round" autoanchor="true" levels="1,2,3,4" bullets="1.,-,-,-" -->
@@ -42,10 +41,9 @@ Kasa
 1. [References](#references)
 
 <!-- /MarkdownTOC -->
-</details>
-</p>
+</details></p>
 
-![Kasa EP10](https://i.imgur.com/jaOzRzh.jpg)
+![Kasa EP10](.github/images/readme-header.jpg)
 
 <a id="quick-start"></a>
 ## Quick Start
