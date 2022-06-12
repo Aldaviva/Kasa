@@ -8,7 +8,7 @@ using TimezoneGenerator.Data;
  *  2. Extract the APK
  *      - Using JADX (https://github.com/skylot/jadx/releases/latest): open the APK, and JSON files are in the Resources directory
  *      - Using Apktool (https://github.com/iBotPeaches/Apktool/releases/latest): `java -jar apktool.jar decode com.tplink.kasa_android_*.apk -o decompiled`, and JSON files are in the decompiled/assets directory
- *  3. Copy the files into the KasaAppAssets directory inside this project, or wherever this project's EXE is saved
+ *  3. Copy the two JSON files (timezone_*.json) into the KasaAppAssets directory inside this project, or wherever this project's EXE is saved
  *  4. Compile and run this program
  *  5. Copy the console output to Kasa/Data/TimeZones.cs
  */

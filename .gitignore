@@ -32,3 +32,4 @@ _ReSharper*/
 #Nuget packages folder
 packages/
 /3D part/
+/TimezoneGenerator/KasaAppAssets/*.json

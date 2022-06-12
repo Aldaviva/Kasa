@@ -1,0 +1,5 @@
+JSON assets from the Kasa Smart app for Android go in this directory when you want to regenerate the time zone mapping in Kasa/Data/TimeZones.cs.
+See TimeZoneGenerator.cs for instructions on how to get these two files.
+
+- timezone_id.json
+- timezone_fwindex.json

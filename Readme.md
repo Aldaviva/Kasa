@@ -7,7 +7,7 @@ Kasa
 
 <p>
 <details>
-    <summary>Table of Contents</summary>
+    <summary><strong>Table of Contents</strong></summary>
 
 <!-- MarkdownTOC autolink="true" bracket="round" autoanchor="true" levels="1,2,3,4" bullets="1.,-,-,-" -->
 
@@ -467,6 +467,7 @@ Some methods also throw other exceptions in specific cases, such as `ArgumentOut
 - [Controlling the TP-LINK HS100 Wi-Fi smart plug](https://blog.georgovassilis.com/2016/05/07/controlling-the-tp-link-hs100-wi-fi-smart-plug/) — *George Georgovassilis, Thomas Baust*
 - [python-kasa](https://github.com/python-kasa/python-kasa)
 - [Pi Projects](https://morepablo.com/2022/04/household-pi-projects.html) — *Pablo Meier*
+- [THLaundry](http://thlaundry.techhouse.org) — *Ben Hutchison, Robert Mustacchi*
 - [homebridge-tplink-smarthome#202](https://github.com/plasticrake/homebridge-tplink-smarthome/issues/202) — *the1maximus*
 - [KasaLink](https://github.com/mguinness/KasaLink/blob/main/KasaLink/Program.cs) — *mguinness*
 - [kasasock](https://github.com/english299/Smart-Home-Without-the-Cloud/blob/main/kasaHS1xx/csharp/kasasock.cs) — *Brian English*
