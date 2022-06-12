@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>0.0.0</Version>
+        <Version>0.0.1-SNAPSHOT</Version>
         <Title>Kasa</Title>
         <PackageId>Kasa</PackageId>
         <Product>Kasa</Product>
-        <Description>TP-Link Kasa smart plugs/outlets</Description>
+        <Description>Control TP-Link Kasa smart outlets/plugs</Description>
         <Authors>Ben Hutchison</Authors>
         <Company>Ben Hutchison</Company>
         <Copyright>© 2022 Ben Hutchison</Copyright>
