@@ -244,7 +244,7 @@ await kasa.System.SetOutletOn(true);
 The name or alias of the device that you chose during setup.
 ```cs
 string name = await kasa.System.GetName();
-Console.WriteLine("Name: {name}");
+Console.WriteLine($"Name: {name}");
 ```
 ```text
 Name: Washing Machine
