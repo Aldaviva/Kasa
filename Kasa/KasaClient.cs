@@ -197,6 +197,14 @@ internal class KasaClient: IKasaClient {
                 e.Completed += (sender, args) => connected.Set();
                 connected.Wait();
             }
+
+            switch (e.SocketError) {
+            case SocketError.Success:
+                return;
+
+            default:
+                throw e.ConnectByNameError;
+            }
         }
     }
 
