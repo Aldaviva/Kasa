@@ -259,7 +259,7 @@ public class KasaClientTest {
         KasaClient client = new("0.0.0.0") {
             Options = new Options { MaxAttempts = 2, RetryDelay = TimeSpan.Zero, SendTimeout = TimeSpan.Zero, ReceiveTimeout = TimeSpan.Zero }
         };
-        Func<Task> thrower = async () => await client.Send<JObject>(CommandFamily.System, "test");
+        Func<Task> thrower = async () => await client.Send<JObject>(CommandFamily.System, "test", parameters: null);
         await thrower.Should().ThrowAsync<NetworkException>();
     }
 
@@ -305,12 +305,12 @@ internal class TestableKasaClient: KasaClient {
 
     public TestableKasaClient(string hostname): base(hostname) { }
 
-    protected internal override Task EnsureConnected(bool forceReconnect = false) {
+    protected internal override Task EnsureConnected(CancellationToken cancellationToken, bool forceReconnect = false) {
         // we're not actually connected during most tests, so don't throw
         return Task.CompletedTask;
     }
 
-    internal override Task<Stream> GetNetworkStream() {
+    internal override Task<Stream> GetNetworkStream(CancellationToken cancellationToken) {
         return Task.FromResult(_networkStream);
     }
 

@@ -99,10 +99,11 @@ internal class KasaClient: IKasaClient {
     /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
     /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
-    public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
-        await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
+    public async Task<T> Send<T>(Command command,
+                                 CancellationToken cancellationToken = default) {
+        await TcpMutex.WaitAsync(cancellationToken).ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
         try {
-            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters);
+            Task<T> Attempt() => SendWithoutRetry<T>(command, cancellationToken);
 
 #pragma warning disable Ex0100 // Member may throw undocumented exception
             return await Retrier.InvokeWithRetry(Attempt, Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed).ConfigureAwait(false);
@@ -124,18 +125,18 @@ internal class KasaClient: IKasaClient {
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.ReadAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32) -T:System.NotSupportedException
-    private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters) {
+    private async Task<T> SendWithoutRetry<T>(Command command,
+                                              CancellationToken cancellationToken) {
         /*
          * Send request
          */
 
-        Stream tcpStream = await GetNetworkStream().ConfigureAwait(false);
+        Stream tcpStream = await GetNetworkStream(cancellationToken).ConfigureAwait(false);
         long   requestId = Interlocked.Increment(ref _requestId);
-        JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
-            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters)))));
-        byte[] requestBytes = Serialize(request, requestId);
+        
+        byte[] requestBytes = Serialize(command.Json, requestId);
 
-        await tcpStream.WriteAsync(requestBytes, 0, requestBytes.Length, CancellationToken.None).ConfigureAwait(false);
+        await tcpStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken).ConfigureAwait(false);
 
         /*
          * Receive response
@@ -150,23 +151,20 @@ internal class KasaClient: IKasaClient {
         }
 
         int expectedPayloadLength = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headerBuffer, 0));
-        await responseBuffer.WriteAsync(headerBuffer, 0, headerBytesRead).ConfigureAwait(false);
+        await responseBuffer.WriteAsync(headerBuffer, 0, headerBytesRead, cancellationToken).ConfigureAwait(false);
 
         byte[] payloadBuffer       = new byte[expectedPayloadLength];
-        int    actualPayloadLength = await tcpStream.ReadAsync(payloadBuffer, 0, payloadBuffer.Length, CancellationToken.None).ConfigureAwait(false);
-        if (actualPayloadLength != expectedPayloadLength) {
-            throw new IOException($"Failed to read {expectedPayloadLength:N0}-byte length payload, actually read {actualPayloadLength:N0} bytes");
-        }
+        await tcpStream.ReadExactAsync(payloadBuffer, 0, payloadBuffer.Length, cancellationToken).ConfigureAwait(false);
 
-        await responseBuffer.WriteAsync(payloadBuffer, 0, actualPayloadLength).ConfigureAwait(false);
+        await responseBuffer.WriteAsync(payloadBuffer, 0, expectedPayloadLength, cancellationToken).ConfigureAwait(false);
 
         byte[] responseBytes = responseBuffer.ToArray();
-        return Deserialize<T>(responseBytes, requestId, commandFamily, methodName);
+        return Deserialize<T>(responseBytes, requestId, command.Family, command.MethodName);
     }
 
     /// <exception cref="SocketException">The TCP socket failed to connect.</exception>
-    internal virtual async Task<Stream> GetNetworkStream() {
-        await EnsureConnected().ConfigureAwait(false);
+    internal virtual async Task<Stream> GetNetworkStream(CancellationToken cancellationToken = default) {
+        await EnsureConnected(cancellationToken).ConfigureAwait(false);
         return _tcpClient.GetStream();
     }
 
@@ -225,7 +223,7 @@ internal class KasaClient: IKasaClient {
     // ExceptionAdjustment: M:System.Net.Sockets.Socket.ConnectAsync(System.Net.Sockets.SocketAsyncEventArgs) -T:System.Security.SecurityException
     /// <exception cref="ObjectDisposedException">This instance has already been disposed.</exception>
     /// <exception cref="SocketException">The TCP socket failed to connect.</exception>
-    protected internal virtual async Task EnsureConnected(bool forceReconnect = false) {
+    protected internal virtual async Task EnsureConnected(CancellationToken cancellationToken = default, bool forceReconnect = false) {
         if (_disposed) {
             throw new ObjectDisposedException(nameof(KasaClient), "This KasaClient has already been disposed. Please construct a new KasaOutlet instance and use that instead.");
         }

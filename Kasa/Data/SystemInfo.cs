@@ -59,6 +59,8 @@ public struct SystemInfo {
     /// </summary>
     [JsonProperty("model")] public string ModelName { get; internal set; }
 
+    [JsonProperty("mic_type")] public string Type { get; internal set; }
+
     /// <summary>
     /// <para>32-character uppercase hexadecimal string that is unique for each model, the same uniqueness as <see cref="HardwareId"/>.</para>
     /// <para>Examples:
@@ -93,5 +95,12 @@ public struct SystemInfo {
     /// <para>These will vary by model, for example, the EP10 has a timer but no energy meter, while the KP125 has both.</para>
     /// </summary>
     [JsonProperty("feature")] public ISet<Feature> Features { get; internal set; }
+    
+    /// <summary>
+    /// Outlets (on a power strip).
+    /// </summary>
+    [JsonProperty("children")] public ISet<Outlet> Children { get; internal set; }
+
+    [JsonProperty("err_code")] public int ErrorCode { get; internal set; }
 
 }
