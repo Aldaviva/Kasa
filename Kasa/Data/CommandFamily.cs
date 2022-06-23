@@ -9,8 +9,7 @@ internal enum CommandFamily {
     EnergyMeter,
     Scheduling,
     Timer,
-    AwayMode
-
+    AwayMode,
 }
 
 internal static class CommandFamilies {

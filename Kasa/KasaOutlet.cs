@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -21,7 +22,7 @@ namespace Kasa;
 /// </summary>
 public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands {
 
-    private readonly IKasaClient _client;
+    readonly IKasaClient _client;
 
     /// <inheritdoc />
     public string Hostname => _client.Hostname;
@@ -115,7 +116,7 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     }
 
     /// <inheritdoc />
-    Task<SystemInfo> IKasaOutlet.ISystemCommands.GetInfo() {
+    Task<SystemInfo> IKasaOutlet.ISystemCommands.GetInfo(CancellationToken cancellationToken) {
         return _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo");
     }
 

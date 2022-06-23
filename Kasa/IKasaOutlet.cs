@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Kasa;
@@ -84,7 +85,7 @@ public interface IKasaOutlet: IOptions, IDisposable {
         /// <returns>Data about the device</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
-        Task<SystemInfo> GetInfo();
+        Task<SystemInfo> GetInfo(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// <para>Outlets have a physical status light that shows whether they are supplying power to consumers or not.</para>
