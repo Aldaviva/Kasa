@@ -5,6 +5,8 @@
 # Usage: <memberId>[ <accessor>] (-/+)<exceptionTypeId>
 # See ECMA-334, 5th Ed. § D.4.2 "ID string format" for a description of the ID format.
 
+M:Newtonsoft.Json.JsonConverter.ReadJson(Newtonsoft.Json.JsonReader,System.Type,System.Object,Newtonsoft.Json.JsonSerializer) +T:Newtonsoft.Json.JsonSerializationException
+M:Newtonsoft.Json.JsonConverter`1.ReadJson(Newtonsoft.Json.JsonReader,System.Type,`0,System.Boolean,Newtonsoft.Json.JsonSerializer) +T:Newtonsoft.Json.JsonSerializationException
 M:System.Array.Copy(System.Array,System.Array,System.Int32) -T:System.RankException
 M:System.Array.Copy(System.Array,System.Array,System.Int32) -T:System.ArrayTypeMismatchException
 P:System.Lazy`1.Value get -T:System.MemberAccessException

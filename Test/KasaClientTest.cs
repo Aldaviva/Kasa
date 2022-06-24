@@ -24,7 +24,7 @@ public class KasaClientTest {
 
     [Fact]
     public void Cipher() {
-        byte[] cleartext = Encoding.UTF8.GetBytes(@"{""system"":{""get_sysinfo"":null}}");
+        byte[] cleartext = new UTF8Encoding(false).GetBytes(@"{""system"":{""get_sysinfo"":null}}");
         byte[] expected  = Convert.FromBase64String("eyJzedisyaSGvMflgueTzL/Gtdyy1LuZo8241LjFuA==");
         byte[] actual    = KasaClient.Cipher(cleartext);
         actual.Should().BeEquivalentTo(expected);
@@ -32,7 +32,7 @@ public class KasaClientTest {
 
     [Fact]
     public void Decipher() {
-        byte[] ciphertext = Encoding.UTF8.GetBytes(@"{""system"":{""set_led_off"":{""err_code"":0}}}");
+        byte[] ciphertext = new UTF8Encoding(false).GetBytes(@"{""system"":{""set_led_off"":{""err_code"":0}}}");
         byte[] expected   = Convert.FromBase64String("eyJzedgHEQhPGEFZURYRKzMJATswCQBEGEFZRxcALTwMCwFHGApNAAA=");
         byte[] actual     = KasaClient.Decipher(ciphertext);
         actual.Should().BeEquivalentTo(expected);

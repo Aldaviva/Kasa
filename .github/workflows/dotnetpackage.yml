@@ -17,11 +17,6 @@ jobs:
     - name: Clone
       uses: actions/checkout@v3
         
-    - name: Set up
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 6.x
-        
     - name: Restore
       run: dotnet restore
 

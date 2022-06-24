@@ -5,6 +5,7 @@ using Kasa;
 using Kasa.Marshal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Timer = Kasa.Timer;
 
 namespace Test;
 
@@ -41,11 +42,20 @@ public class MarshalTests {
     }
 
     [Fact]
+    public void ParseTimeSpan() {
+        JsonConvert.DeserializeObject<TimeSpan>(@"1800", new TimeSpanConverter()).Should().Be(TimeSpan.FromMinutes(30));
+        JsonConvert.DeserializeObject<TimeSpan>(@"1800.0", new TimeSpanConverter()).Should().Be(TimeSpan.FromMinutes(30));
+        JsonConvert.DeserializeObject<TimeSpan?>(@"null", new TimeSpanConverter()).Should().BeNull();
+    }
+
+    [Fact]
     public void WrongJsonTokenType() {
         ((Func<ISet<Feature>?>) (() => JsonConvert.DeserializeObject<ISet<Feature>>(@"1", new FeatureConverter()))).Should().Throw<JsonSerializationException>();
         ((Func<OperatingMode?>) (() => JsonConvert.DeserializeObject<OperatingMode>(@"1", new OperatingModeConverter()))).Should().Throw<JsonSerializationException>();
         ((Func<PhysicalAddress?>) (() => JsonConvert.DeserializeObject<PhysicalAddress>(@"1", new MacAddressConverter()))).Should().Throw<JsonSerializationException>();
         ((Func<PhysicalAddress?>) (() => JsonConvert.DeserializeObject<PhysicalAddress>(@"""abc""", new MacAddressConverter()))).Should().Throw<JsonSerializationException>();
+        ((Func<TimeSpan?>) (() => JsonConvert.DeserializeObject<TimeSpan>(@"""abc""", new TimeSpanConverter()))).Should().Throw<JsonSerializationException>();
+        ((Func<TimeSpan?>) (() => JsonConvert.DeserializeObject<TimeSpan>(@"null", new TimeSpanConverter()))).Should().Throw<JsonSerializationException>();
     }
 
     [Fact]
@@ -96,6 +106,13 @@ public class MarshalTests {
         new FeatureConverter().WriteJson(new JTokenWriter(), ImmutableHashSet<Feature>.Empty, jsonSerializer);
         new MacAddressConverter().WriteJson(new JTokenWriter(), PhysicalAddress.None, jsonSerializer);
         new OperatingModeConverter().WriteJson(new JTokenWriter(), OperatingMode.Schedule, jsonSerializer);
+    }
+
+    [Fact]
+    public void SerializeTimerRule() {
+        Timer  rule   = new(TimeSpan.FromMinutes(30), true);
+        string actual = JsonConvert.SerializeObject(rule, KasaClient.JsonSettings);
+        actual.Should().Be(@"{""name"":""add timer"",""enable"":true,""act"":true,""delay"":1800}");
     }
 
 }

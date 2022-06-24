@@ -9,9 +9,9 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
 
 ILogger logger = loggerFactory.CreateLogger("Main");
 
-using IKasaOutlet outlet = new KasaOutlet("washingmachine.outlets.aldaviva.com") {
+using IKasaOutlet outlet = new KasaOutlet("192.168.1.227", new Options {
     LoggerFactory = loggerFactory
-};
+});
 
 string         outletName         = await outlet.System.GetName();
 SystemInfo     systemInfo         = await outlet.System.GetInfo();

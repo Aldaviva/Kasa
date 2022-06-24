@@ -13,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
+using TimeSpanConverter = Kasa.Marshal.TimeSpanConverter;
 
 namespace Kasa;
 
@@ -20,27 +22,46 @@ internal class KasaClient: IKasaClient {
 
     private const int HeaderLength = 4;
 
-    private static readonly  SemaphoreSlim  TcpMutex       = new(1);
-    private static readonly  Encoding       Encoding       = Encoding.UTF8;
-    internal static readonly JsonSerializer JsonSerializer = new();
+    private static readonly SemaphoreSlim TcpMutex = new(1);
+    private static readonly Encoding      Encoding = new UTF8Encoding(false);
 
-    private TcpClient _tcpClient;
+    internal static readonly JsonSerializerSettings JsonSettings = new() {
+        ContractResolver = new DefaultContractResolver { NamingStrategy = new SnakeCaseNamingStrategy() },
+        Converters = new JsonConverter[] {
+            new MacAddressConverter(),
+            new OperatingModeConverter(),
+            new FeatureConverter(),
+            new TimeSpanConverter()
+        }
+    };
 
-    private  ILogger<KasaClient> _logger    = new NullLogger<KasaClient>();
-    internal ushort              Port       = 9999;
-    private  long                _requestId = -1;
-    private  bool                _disposed;
+    internal static readonly JsonSerializer JsonSerializer = JsonSerializer.Create(JsonSettings);
+
+    private TcpClient           _tcpClient;
+    private Options             _options   = new();
+    private ILogger<KasaClient> _logger    = new NullLogger<KasaClient>();
+    private long                _requestId = -1;
+    private bool                _disposed;
+
+    internal ushort Port = 9999;
 
     public string Hostname { get; }
 
-    public Options Options { get; set; } = new();
+    public Options Options {
+        get => _options;
+        set {
+            _options = value;
+            OnChangeOptions();
+        }
+    }
 
     public bool Connected => _tcpClient.Connected && _tcpClient.Client.Connected;
 
     static KasaClient() {
-        JsonSerializer.Converters.Add(new MacAddressConverter());
-        JsonSerializer.Converters.Add(new OperatingModeConverter());
-        JsonSerializer.Converters.Add(new FeatureConverter());
+        // JsonSerializer.Converters.Add(new MacAddressConverter());
+        // JsonSerializer.Converters.Add(new OperatingModeConverter());
+        // JsonSerializer.Converters.Add(new FeatureConverter());
+        // JsonSerializer.Converters.Add(new TimeSpanConverter());
     }
 
     public KasaClient(string hostname) {
@@ -96,8 +117,7 @@ internal class KasaClient: IKasaClient {
         }
     }
 
-    /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
-    /// <exception cref="ResponseParsingException">if the JSON received from the outlet contains unexpected data</exception>
+    /// <inheritdoc />
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
     public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
         await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
@@ -132,7 +152,7 @@ internal class KasaClient: IKasaClient {
         Stream tcpStream = await GetNetworkStream().ConfigureAwait(false);
         long   requestId = Interlocked.Increment(ref _requestId);
         JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
-            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters)))));
+            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer)))));
         byte[] requestBytes = Serialize(request, requestId);
 
         await tcpStream.WriteAsync(requestBytes, 0, requestBytes.Length, CancellationToken.None).ConfigureAwait(false);
@@ -180,6 +200,7 @@ internal class KasaClient: IKasaClient {
         return Cipher(requestBytes);
     }
 
+    /// <exception cref="ArgumentOutOfRangeException">If a feature is unavailable but we have no mapping for it in <see cref="Feature"/>.</exception>
     /// <exception cref="FeatureUnavailable">If the device is missing a feature that is required to run the given method, such as running <c>EnergyMeter.GetInstantaneousPowerUsage()</c> on an EP10, which does not have the EnergyMeter Feature.</exception>
     /// <exception cref="ResponseParsingException">If the JSON response from the outlet cannot be deserialized into an object.</exception>
     protected internal T Deserialize<T>(IEnumerable<byte> responseBytes, long requestId, CommandFamily commandFamily, string methodName) {
@@ -192,7 +213,12 @@ internal class KasaClient: IKasaClient {
         try {
             JToken innerResponse = JObject.Parse(responseString)[commandFamily.ToJsonString()]!;
             if (innerResponse["err_msg"]?.Value<string>() == "module not support") {
-                throw new FeatureUnavailable(requestMethod, Feature.EnergyMeter, Hostname);
+                Feature requiredFeature = commandFamily switch {
+                    CommandFamily.EnergyMeter => Feature.EnergyMeter,
+                    CommandFamily.Timer       => Feature.Timer,
+                    _                         => throw new ArgumentOutOfRangeException(nameof(commandFamily), commandFamily, null)
+                };
+                throw new FeatureUnavailable(requestMethod, requiredFeature, Hostname);
             }
 
             return innerResponse[methodName]!.ToObject<T>(JsonSerializer)!;

@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Kasa;
 
@@ -19,7 +15,7 @@ namespace Kasa;
 ///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands {
+public partial class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands, IKasaOutlet.ITimerCommands {
 
     private readonly IKasaClient _client;
 
@@ -27,33 +23,9 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     public string Hostname => _client.Hostname;
 
     /// <inheritdoc />
-    public ILoggerFactory? LoggerFactory {
-        get => _client.Options.LoggerFactory;
-        set => _client.Options.LoggerFactory = value;
-    }
-
-    /// <inheritdoc />
-    public uint MaxAttempts {
-        get => _client.Options.MaxAttempts;
-        set => _client.Options.MaxAttempts = value;
-    }
-
-    /// <inheritdoc />
-    public TimeSpan RetryDelay {
-        get => _client.Options.RetryDelay;
-        set => _client.Options.RetryDelay = value;
-    }
-
-    /// <inheritdoc />
-    public TimeSpan ReceiveTimeout {
-        get => _client.Options.ReceiveTimeout;
-        set => _client.Options.ReceiveTimeout = value;
-    }
-
-    /// <inheritdoc />
-    public TimeSpan SendTimeout {
-        get => _client.Options.SendTimeout;
-        set => _client.Options.SendTimeout = value;
+    public Options Options {
+        get => _client.Options;
+        set => _client.Options = value;
     }
 
     /// <summary>
@@ -63,7 +35,8 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     /// <para>Remember to <see cref="Dispose()"/> each instance when you're done using it and want to disconnect from the TCP session. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
     /// </summary>
     /// <param name="hostname">The fully-qualified domain name or IP address of the Kasa device to which this instance should connect.</param>
-    public KasaOutlet(string hostname): this(new KasaClient(hostname)) { }
+    /// <param name="options">Non-required configuration parameters for the <see cref="IKasaOutlet"/>, which can be used to fine-tune its behavior.</param>
+    public KasaOutlet(string hostname, Options? options = null): this(new KasaClient(hostname) { Options = options ?? new Options() }) { }
 
     internal KasaOutlet(IKasaClient client) {
         _client = client;
@@ -73,15 +46,6 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     public Task Connect() {
         return _client.Connect();
     }
-
-    /// <inheritdoc />
-    public IKasaOutlet.ISystemCommands System => this;
-
-    /// <inheritdoc />
-    public IKasaOutlet.ITimeCommands Time => this;
-
-    /// <inheritdoc />
-    public IKasaOutlet.IEnergyMeterCommands EnergyMeter => this;
 
     /// <summary>
     /// <para>Disconnects and disposes the TCP client.</para>
@@ -101,154 +65,6 @@ public class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.I
     public void Dispose() {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    /// <inheritdoc />
-    async Task<bool> IKasaOutlet.ISystemCommands.IsOutletOn() {
-        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
-        return systemInfo.IsOutletOn;
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.SetOutletOn(bool turnOn) {
-        return _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = Convert.ToInt32(turnOn) });
-    }
-
-    /// <inheritdoc />
-    Task<SystemInfo> IKasaOutlet.ISystemCommands.GetInfo() {
-        return _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo");
-    }
-
-    /// <inheritdoc />
-    async Task<bool> IKasaOutlet.ISystemCommands.IsIndicatorLightOn() {
-        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
-        return !systemInfo.IndicatorLightDisabled;
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.SetIndicatorLightOn(bool turnOn) {
-        return _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = Convert.ToInt32(!turnOn) });
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.Reboot(TimeSpan afterDelay) {
-        return _client.Send<JObject>(CommandFamily.System, "reboot", new { delay = (int) afterDelay.TotalSeconds });
-    }
-
-    /// <inheritdoc />
-    async Task<string> IKasaOutlet.ISystemCommands.GetName() {
-        SystemInfo systemInfo = await ((IKasaOutlet.ISystemCommands) this).GetInfo().ConfigureAwait(false);
-        return systemInfo.Name;
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.ISystemCommands.SetName(string name) {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 31) {
-            throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive), and cannot be only whitespace");
-        }
-
-        return _client.Send<JObject>(CommandFamily.System, "set_dev_alias", new { alias = name });
-    }
-
-    // /// <exception cref="SocketException"></exception>
-    // /// <exception cref="IOException"></exception>
-    // /// <exception cref="JsonReaderException"></exception>
-    // Task IKasaSmartOutlet.ISystemCommands.SetLocation(double latitude, double longitude) {
-    //     return _client.Send<JObject>(CommandFamily.System, "set_dev_location", new { latitude, longitude });
-    // }
-
-    /// <inheritdoc />
-    async Task<DateTime> IKasaOutlet.ITimeCommands.GetTime() {
-        JObject response = await _client.Send<JObject>(CommandFamily.Time, "get_time").ConfigureAwait(false);
-        return new DateTime(
-            response["year"]!.ToObject<int>(),
-            response["month"]!.ToObject<int>(),
-            response["mday"]!.ToObject<int>(),
-            response["hour"]!.ToObject<int>(),
-            response["min"]!.ToObject<int>(),
-            response["sec"]!.ToObject<int>());
-    }
-
-    /// <inheritdoc />
-    async Task<DateTimeOffset> IKasaOutlet.ITimeCommands.GetTimeWithZoneOffset() {
-        IKasaOutlet.ITimeCommands @this = this;
-
-        DateTime                  localDate             = await @this.GetTime().ConfigureAwait(false);
-        IEnumerable<TimeZoneInfo> timeZonePossibilities = await @this.GetTimeZones().ConfigureAwait(false);
-
-        return new DateTimeOffset(localDate, timeZonePossibilities.First().GetUtcOffset(localDate));
-    }
-
-    /// <inheritdoc />
-    // ExceptionAdjustment: M:System.TimeZoneInfo.FindSystemTimeZoneById(System.String) -T:System.Security.SecurityException
-    async Task<IEnumerable<TimeZoneInfo>> IKasaOutlet.ITimeCommands.GetTimeZones() {
-        JObject response         = await _client.Send<JObject>(CommandFamily.Time, "get_timezone").ConfigureAwait(false);
-        int     deviceTimezoneId = response["index"]!.ToObject<int>();
-
-        IEnumerable<string> windowsZoneIds = TimeZones.KasaIndicesToWindowsZoneIds[deviceTimezoneId];
-        return windowsZoneIds.SelectMany(windowsZoneId => {
-            try {
-                return new[] { TimeZoneInfo.FindSystemTimeZoneById(windowsZoneId) };
-            } catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException) {
-                return Enumerable.Empty<TimeZoneInfo>();
-            }
-        });
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.ITimeCommands.SetTimeZone(TimeZoneInfo timeZone) {
-        try {
-            int deviceTimezoneId = TimeZones.WindowsZoneIdsToKasaIndices[timeZone.Id];
-            return _client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
-        } catch (KeyNotFoundException e) {
-            throw new TimeZoneNotFoundException($"Kasa devices don't have a built-in time zone that matches {timeZone.Id}." +
-                $"Consult Kasa.{nameof(TimeZones)}.{nameof(TimeZones.WindowsZoneIdsToKasaIndices)} for supported time zones.", e);
-        }
-    }
-
-    /// <inheritdoc />
-    Task<PowerUsage> IKasaOutlet.IEnergyMeterCommands.GetInstantaneousPowerUsage() {
-        return _client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
-    }
-
-    /// <inheritdoc />
-    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetDailyEnergyUsage(int year, int month) {
-        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
-        List<int>? results  = null;
-
-        if (response.Count > 0) {
-            int daysInMonth = new DateTime(year, month, 1).AddMonths(1).AddDays(-1).Day;
-            results = new List<int>(Enumerable.Repeat(0, daysInMonth));
-            foreach (JToken dayEntry in response) {
-                int day    = dayEntry["day"]!.Value<int>();
-                int energy = dayEntry["energy_wh"]!.Value<int>();
-                results[day - 1] = energy;
-            }
-        }
-
-        return results;
-    }
-
-    /// <inheritdoc />
-    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetMonthlyEnergyUsage(int year) {
-        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
-        List<int>? results  = null;
-
-        if (response.Count > 0) {
-            results = new List<int>(Enumerable.Repeat(0, 12));
-            foreach (JToken monthEntry in response) {
-                int month  = monthEntry["month"]!.Value<int>();
-                int energy = monthEntry["energy_wh"]!.Value<int>();
-                results[month - 1] = energy;
-            }
-        }
-
-        return results;
-    }
-
-    /// <inheritdoc />
-    Task IKasaOutlet.IEnergyMeterCommands.DeleteHistoricalUsage() {
-        return _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
     }
 
 }

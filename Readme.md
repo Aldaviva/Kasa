@@ -32,6 +32,10 @@ Kasa
         - [GetTimeWithZoneOffset](#gettimewithzoneoffset)
         - [GetTimeZones](#gettimezones)
         - [SetTimeZone](#settimezone)
+    - [Timer](#timer)
+        - [Get](#get)
+        - [Start](#start)
+        - [Clear](#clear)
     - [Energy Meter](#energy-meter)
         - [GetInstantaneousPowerUsage](#getinstantaneouspowerusage)
         - [GetDailyEnergyUsage](#getdailyenergyusage)
@@ -113,13 +117,13 @@ await kasa.Connect();
 You can customize the `KasaOutlet` instance by setting optional properties to control logging, timeouts, and retries.
 
 ```cs
-using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100") {
+using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100", new Options {
     LoggerFactory = loggerFactory,
     MaxAttempts = 20,
     RetryDelay = TimeSpan.FromSeconds(1),
     SendTimeout = TimeSpan.FromSeconds(2),
     ReceiveTimeout = TimeSpan.FromSeconds(2)
-};
+});
 ```
 
 <a id="logging"></a>
@@ -132,9 +136,9 @@ This library will emit log messages at the `Debug` level when it connects and di
 ##### ASP.NET Core
 ```cs
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddSingleton<IKasaOutlet>(services => new KasaOutlet("192.168.1.100") {
+builder.Services.AddSingleton<IKasaOutlet>(services => new KasaOutlet("192.168.1.100", new Options {
     LoggerFactory = services.GetRequiredService<ILoggerFactory>()
-});
+}));
 ```
 
 ###### appsettings.json
@@ -152,9 +156,9 @@ builder.Services.AddSingleton<IKasaOutlet>(services => new KasaOutlet("192.168.1
 ##### .NET Generic Host
 ```cs
 Host.CreateDefaultBuilder(args).ConfigureServices(services => {
-    services.AddSingleton<IKasaOutlet>(s => new KasaOutlet("192.168.1.100") {
+    services.AddSingleton<IKasaOutlet>(s => new KasaOutlet("192.168.1.100", new Options {
         LoggerFactory = s.GetRequiredService<ILoggerFactory>()
-    });
+    }));
 });
 ```
 
@@ -176,9 +180,9 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .AddFilter("Kasa", LogLevel.Trace)
     .AddConsole());
 
-using IKasaOutlet kasa = new KasaOutlet("192.168.1.100") {
+using IKasaOutlet kasa = new KasaOutlet("192.168.1.100", new Options {
     LoggerFactory = loggerFactory
-};
+});
 ```
 
 ##### Third-party logging providers
@@ -195,9 +199,9 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .SetMinimumLevel(LogLevel.Trace)
     .AddNLog());
 
-using IKasaOutlet kasa = new KasaOutlet("192.168.1.100") {
+using IKasaOutlet kasa = new KasaOutlet("192.168.1.100", new Options {
     LoggerFactory = loggerFactory,
-};
+});
 ```
 
 <a id="commands"></a>
@@ -329,7 +333,9 @@ await kasa.System.Reboot(TimeSpan.FromSeconds(5));
 <a id="time"></a>
 ### Time
 
-Commands that deal with the device's internal clock that keeps track of the current date and time. This is unrelated to schedules and timers that control when the outlet turns on or off.
+Commands that deal with the device's internal clock that keeps track of the current date and time.
+
+This is unrelated to schedules and timers that control when the outlet turns on or off, see [Timer](#timer).
 
 <a id="gettime"></a>
 #### GetTime
@@ -374,6 +380,61 @@ Device time zone may be Yukon Standard Time or Pacific Standard Time
 Configure the device to use a specific time zone.
 ```cs
 await kasa.Time.SetTimeZone(TimeZoneInfo.Local);
+```
+
+<a id="timer"></a>
+### Timer
+Countdown timers allow you to schedule the outlet to turn on or off once after a delay of configurable duration.
+
+Outlets can handle at most one timer at once.
+
+This is unrelated to the current time of the device's internal clock, see [Time](#time).
+
+<a id="get"></a>
+#### Get
+Get the currently running countdown timer rule on the device, along with its updated `RemainingDuration`.
+
+There can be either 0 or 1 timers on the device at once; multiple timers are not possible.
+
+If no timer has ever been created, it already elapsed, or you deleted it with [Clear](#clear), this method will return `null`.
+
+```cs
+if(await outlet.Timer.Get() is { } timer){
+    Console.WriteLine($"Outlet will turn {(timer.SetOutletOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
+} else {
+    Console.WriteLine("No timer running.");
+}
+```
+```text
+Outlet will turn on in 9.3 seconds.
+```
+
+<a id="start"></a>
+#### Start
+Save a new, enabled countdown timer to the device.
+
+There can be at most one timer on the device at once, so any existing timers will first be deleted, even if they had not elapsed yet.
+
+The created timer will be returned, which is useful if you want to inspect the newly-populated `RemainingDuration` property.
+
+```cs
+Timer timer = await outlet.Timer.Start(TimeSpan.FromMinutes(30), true);
+Console.WriteLine($"Outlet will turn {(timer.SetOutletOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
+```
+```text
+Outlet will turn on in 1,800.0 seconds.
+```
+
+<a id="clear"></a>
+#### Clear
+Delete any existing timer rule from the device, cancelling its countdown.
+
+This will cause [Get](#get) to return `null` until you [Start](#start) a new timer.
+
+Idempotent: this will succeed even if there are no timers to delete.
+
+```cs
+await outlet.Timers.Clear();
 ```
 
 <a id="energy-meter"></a>
