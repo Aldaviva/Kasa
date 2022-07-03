@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -14,13 +13,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
-using TimeSpanConverter = Kasa.Marshal.TimeSpanConverter;
 
 namespace Kasa;
 
 internal class KasaClient: IKasaClient {
-
-    private const int HeaderLength = 4;
 
     private static readonly SemaphoreSlim TcpMutex = new(1);
     private static readonly Encoding      Encoding = new UTF8Encoding(false);
@@ -31,7 +27,7 @@ internal class KasaClient: IKasaClient {
             new MacAddressConverter(),
             new OperatingModeConverter(),
             new FeatureConverter(),
-            new TimeSpanConverter()
+            new DaysOfWeekConverter()
         }
     };
 
@@ -56,13 +52,6 @@ internal class KasaClient: IKasaClient {
     }
 
     public bool Connected => _tcpClient.Connected && _tcpClient.Client.Connected;
-
-    static KasaClient() {
-        // JsonSerializer.Converters.Add(new MacAddressConverter());
-        // JsonSerializer.Converters.Add(new OperatingModeConverter());
-        // JsonSerializer.Converters.Add(new FeatureConverter());
-        // JsonSerializer.Converters.Add(new TimeSpanConverter());
-    }
 
     public KasaClient(string hostname) {
         _tcpClient              =  new TcpClient(AddressFamily.InterNetwork);
@@ -143,7 +132,6 @@ internal class KasaClient: IKasaClient {
     // ExceptionAdjustment: M:System.Threading.Interlocked.Increment(System.Int64@) -T:System.NullReferenceException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.ReadAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
-    // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32) -T:System.NotSupportedException
     private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters) {
         /*
          * Send request
@@ -154,34 +142,32 @@ internal class KasaClient: IKasaClient {
         JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
             new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer)))));
         byte[] requestBytes = Serialize(request, requestId);
+        byte[] headerBuffer = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(requestBytes.Length));
 
+        await tcpStream.WriteAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false);
         await tcpStream.WriteAsync(requestBytes, 0, requestBytes.Length, CancellationToken.None).ConfigureAwait(false);
 
         /*
          * Receive response
          */
 
-        using MemoryStream responseBuffer = new();
-
-        byte[] headerBuffer    = new byte[HeaderLength];
-        int    headerBytesRead = await tcpStream.ReadAsync(headerBuffer, 0, HeaderLength, CancellationToken.None).ConfigureAwait(false);
-        if (headerBytesRead != HeaderLength) {
-            throw new IOException($"Failed to read {HeaderLength}-byte length header, actually read {headerBytesRead} bytes");
+        headerBuffer = new byte[headerBuffer.Length];
+        if (headerBuffer.Length != await tcpStream.ReadAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false)) {
+            throw new IOException(
+                $"Failed to read {headerBuffer.Length}-byte length header, actually read {await tcpStream.ReadAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false)} bytes");
         }
 
         int expectedPayloadLength = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headerBuffer, 0));
-        await responseBuffer.WriteAsync(headerBuffer, 0, headerBytesRead).ConfigureAwait(false);
 
-        byte[] payloadBuffer       = new byte[expectedPayloadLength];
-        int    actualPayloadLength = await tcpStream.ReadAsync(payloadBuffer, 0, payloadBuffer.Length, CancellationToken.None).ConfigureAwait(false);
-        if (actualPayloadLength != expectedPayloadLength) {
-            throw new IOException($"Failed to read {expectedPayloadLength:N0}-byte length payload, actually read {actualPayloadLength:N0} bytes");
+        byte[] payloadBuffer         = new byte[expectedPayloadLength];
+        int    payloadLengthReceived = 0;
+        while (payloadLengthReceived < expectedPayloadLength) {
+            // Kasa sends 1024-byte chunks
+            int chunkLength = await tcpStream.ReadAsync(payloadBuffer, payloadLengthReceived, payloadBuffer.Length - payloadLengthReceived, CancellationToken.None).ConfigureAwait(false);
+            payloadLengthReceived += chunkLength;
         }
 
-        await responseBuffer.WriteAsync(payloadBuffer, 0, actualPayloadLength).ConfigureAwait(false);
-
-        byte[] responseBytes = responseBuffer.ToArray();
-        return Deserialize<T>(responseBytes, requestId, commandFamily, methodName);
+        return Deserialize<T>(payloadBuffer, requestId, request, commandFamily, methodName);
     }
 
     /// <exception cref="SocketException">The TCP socket failed to connect.</exception>
@@ -192,36 +178,33 @@ internal class KasaClient: IKasaClient {
 
     protected internal byte[] Serialize(JToken request, long requestId) {
         string requestJson  = request.ToString(Formatting.None);
-        byte[] requestBytes = new byte[HeaderLength + Encoding.GetByteCount(requestJson)];
-        Array.Copy(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(requestBytes.Length - HeaderLength)), requestBytes, HeaderLength);
-        Encoding.GetBytes(requestJson, 0, requestJson.Length, requestBytes, HeaderLength);
+        byte[] requestBytes = Encoding.GetBytes(requestJson);
 
         _logger.LogTrace("tcp-outgoing-{requestId} >> {requestJson}", requestId, requestJson);
         return Cipher(requestBytes);
     }
 
+    /// <exception cref="ArgumentException">If the device returns <c>-3 invalid argument</c></exception>
     /// <exception cref="ArgumentOutOfRangeException">If a feature is unavailable but we have no mapping for it in <see cref="Feature"/>.</exception>
     /// <exception cref="FeatureUnavailable">If the device is missing a feature that is required to run the given method, such as running <c>EnergyMeter.GetInstantaneousPowerUsage()</c> on an EP10, which does not have the EnergyMeter Feature.</exception>
     /// <exception cref="ResponseParsingException">If the JSON response from the outlet cannot be deserialized into an object.</exception>
-    protected internal T Deserialize<T>(IEnumerable<byte> responseBytes, long requestId, CommandFamily commandFamily, string methodName) {
-        byte[] responseDeciphered = Decipher(responseBytes.ToArray());
-        int    responseLength     = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(responseDeciphered, 0));
-        string responseString     = Encoding.GetString(responseDeciphered, HeaderLength, responseLength);
+    protected internal T Deserialize<T>(byte[] responseBytes, long requestId, JObject request, CommandFamily commandFamily, string methodName) {
+        byte[] responseDeciphered = Decipher(responseBytes);
+        string responseString     = Encoding.GetString(responseDeciphered);
         string requestMethod      = $"{commandFamily.ToJsonString()}.{methodName}";
 
         _logger.LogTrace("tcp-outgoing-{requestId} << {responseString}", requestId, responseString);
         try {
             JToken innerResponse = JObject.Parse(responseString)[commandFamily.ToJsonString()]!;
-            if (innerResponse["err_msg"]?.Value<string>() == "module not support") {
-                Feature requiredFeature = commandFamily switch {
-                    CommandFamily.EnergyMeter => Feature.EnergyMeter,
-                    CommandFamily.Timer       => Feature.Timer,
-                    _                         => throw new ArgumentOutOfRangeException(nameof(commandFamily), commandFamily, null)
-                };
-                throw new FeatureUnavailable(requestMethod, requiredFeature, Hostname);
+            switch ((innerResponse["err_msg"] ?? innerResponse[methodName]?["err_msg"])?.Value<string>()) {
+                case "module not support":
+                    Feature requiredFeature = commandFamily.GetRequiredFeature();
+                    throw new FeatureUnavailable(requestMethod, requiredFeature, Hostname);
+                case "invalid argument":
+                    throw new ArgumentException($"Invalid argument to {commandFamily}.{methodName} in request:\n" + request.ToString(Formatting.Indented));
+                default:
+                    return innerResponse[methodName]!.ToObject<T>(JsonSerializer)!;
             }
-
-            return innerResponse[methodName]!.ToObject<T>(JsonSerializer)!;
         } catch (JsonReaderException e) {
             throw new ResponseParsingException(requestMethod, responseString, typeof(T), Hostname, e);
         }
@@ -236,17 +219,12 @@ internal class KasaClient: IKasaClient {
         IReadOnlyList<byte> keyStream   = decipher ? inputBytes : outputBytes;
 
         for (int i = 0; i < inputBytes.Count; i++) {
-            outputBytes[i] = i switch {
-                < HeaderLength => inputBytes[i],
-                HeaderLength   => (byte) (inputBytes[i] ^ 171),
-                _              => (byte) (inputBytes[i] ^ keyStream[i - 1])
-            };
+            outputBytes[i] = (byte) (inputBytes[i] ^ (i == 0 ? 171 : keyStream[i - 1]));
         }
 
         return outputBytes;
     }
 
-    // ExceptionAdjustment: M:System.Net.Sockets.Socket.Disconnect(System.Boolean) -T:System.PlatformNotSupportedException
     // ExceptionAdjustment: M:System.Net.Sockets.Socket.ConnectAsync(System.Net.Sockets.SocketAsyncEventArgs) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.Net.Sockets.Socket.ConnectAsync(System.Net.Sockets.SocketAsyncEventArgs) -T:System.Security.SecurityException
     /// <exception cref="ObjectDisposedException">This instance has already been disposed.</exception>
@@ -258,53 +236,11 @@ internal class KasaClient: IKasaClient {
 
         Socket socket = _tcpClient.Client;
         if (!socket.Connected || forceReconnect) {
-            /*try {
-                // If the server vanished without closing the connection (e.g. reboot), we need to manually disconnect the socket before reconnecting it, otherwise we will get "InvalidOperationException: The operation is not allowed on non-connected sockets."
-                // socket.DisconnectAsync()
-                // socket.Shutdown(SocketShutdown.Both);
-                socket.Disconnect(true);
-
-                // _logger.LogDebug("Disconnecting from Kasa device {host}:{port}", Hostname, Port);
-                await Task.Factory.FromAsync(socket.BeginDisconnect, socket.EndDisconnect, true, null).ConfigureAwait(false);
-
-            } catch (Exception e) when (e is SocketException or WebException) {
-                // } catch (SocketException) {
-                //socket has not been connected before, continue to connect for the first time
-                // Console.WriteLine();
-                // } catch (WebException) {
-                //timed out, try to connect again
-                // Console.WriteLine();
-                // } catch (Exception e) {
-                //     Console.WriteLine(e);
-            }*/
-
             _tcpClient.Dispose();
             _tcpClient = new TcpClient(AddressFamily.InterNetwork);
 
-            // SocketAsyncEventArgs e = new() { RemoteEndPoint = new DnsEndPoint(Hostname, Port) };
             _logger.LogDebug("Connecting to Kasa device {host}:{port}", Hostname, Port);
             await _tcpClient.ConnectAsync(Hostname, Port).ConfigureAwait(false);
-            // await Task.Factory.FromAsync(socket.BeginConnect, socket.EndConnect, Hostname, (int) Port, null).ConfigureAwait(false);
-
-            // if (socket.ConnectAsync(e)) {
-            //     ManualResetEventSlim connected = new();
-            //     SocketException?     exception = null;
-            //
-            //     e.Completed += (_, args) => {
-            //         if (args.ConnectByNameError is SocketException ex) {
-            //             exception = ex;
-            //         } else if (args.SocketError != SocketError.Success) {
-            //             exception = new SocketException((int) args.SocketError);
-            //         }
-            //
-            //         connected.Set();
-            //     };
-            //
-            //     connected.Wait();
-            //     if (exception != null) {
-            //         throw exception;
-            //     }
-            // }
         }
     }
 

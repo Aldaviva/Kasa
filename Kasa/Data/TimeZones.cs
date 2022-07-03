@@ -160,15 +160,21 @@ public readonly struct TimeZones {
 
     private static Dictionary<int, IEnumerable<string>>? _kasaIndicesToWindowsZoneIds;
 
+    private static readonly object InitLock = new();
+
     internal static IReadOnlyDictionary<int, IEnumerable<string>> KasaIndicesToWindowsZoneIds {
         get {
             if (_kasaIndicesToWindowsZoneIds == null) {
-                _kasaIndicesToWindowsZoneIds = new Dictionary<int, IEnumerable<string>>();
-                foreach (KeyValuePair<string, int> zoneIdsToDeviceIndex in WindowsZoneIdsToKasaIndices) {
-                    int    kasaIndex     = zoneIdsToDeviceIndex.Value;
-                    string windowsZoneId = zoneIdsToDeviceIndex.Key;
-                    _kasaIndicesToWindowsZoneIds.TryGetValue(kasaIndex, out IEnumerable<string>? enumerable);
-                    _kasaIndicesToWindowsZoneIds[kasaIndex] = (enumerable ?? new List<string>()).Concat(new[] { windowsZoneId });
+                lock (InitLock) {
+                    if (_kasaIndicesToWindowsZoneIds == null) {
+                        _kasaIndicesToWindowsZoneIds = new Dictionary<int, IEnumerable<string>>();
+                        foreach (KeyValuePair<string, int> zoneIdsToDeviceIndex in WindowsZoneIdsToKasaIndices) {
+                            int    kasaIndex     = zoneIdsToDeviceIndex.Value;
+                            string windowsZoneId = zoneIdsToDeviceIndex.Key;
+                            _kasaIndicesToWindowsZoneIds.TryGetValue(kasaIndex, out IEnumerable<string>? enumerable);
+                            _kasaIndicesToWindowsZoneIds[kasaIndex] = (enumerable ?? new List<string>()).Concat(new[] { windowsZoneId });
+                        }
+                    }
                 }
             }
 

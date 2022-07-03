@@ -1,4 +1,5 @@
 ﻿using System;
+using Kasa.Marshal;
 using Newtonsoft.Json;
 
 namespace Kasa;
@@ -8,8 +9,6 @@ namespace Kasa;
 /// <para>These timers can turn the outlet on or off after a specified duration.</para>
 /// </summary>
 public struct Timer {
-
-    // public string? Id { get; set; } = null;
 
     /// <summary>
     /// <para>The optional name of the timer.</para>
@@ -27,14 +26,16 @@ public struct Timer {
     /// <summary>
     /// <para>Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</para>
     /// </summary>
-    [JsonProperty("act")] public bool SetOutletOnWhenComplete { get; set; }
+    [JsonProperty("act")] public bool WillSetOutletOn { get; set; }
 
     /// <summary>
     /// <para>How long the timer should wait, since it was started, before turning on or off.</para>
     /// <para>When the timer elapses and is no longer running, this value will become <see cref="TimeSpan.Zero"/>.</para>
     /// <para>To get the duration remaining from the current time, call <see cref="IKasaOutlet.ITimerCommands.Get"/> and check the <see cref="RemainingDuration"/> property.</para>
     /// </summary>
-    [JsonProperty("delay")] public TimeSpan TotalDuration { get; set; }
+    [JsonProperty("delay")]
+    [JsonConverter(typeof(TimeSpanConverter))]
+    public TimeSpan TotalDuration { get; set; }
 
     /// <summary>
     /// <para>How much time is left on a timer before it completes and turns the outlet on or off.</para>
@@ -45,6 +46,7 @@ public struct Timer {
 
 #pragma warning disable IDE0051 // Remove unused private members - used to make a deserialized-only property in Json.NET
     [JsonProperty("remain")]
+    [JsonConverter(typeof(TimeSpanConverter))]
     private TimeSpan RemainingDurationJson {
         set => RemainingDuration = value;
     }
@@ -55,11 +57,11 @@ public struct Timer {
     /// <para>These timers can turn the outlet on or off after a specified duration.</para>
     /// </summary>
     /// <param name="duration">How long the timer should wait, after being set on the outlet, before turning on or off.</param>
-    /// <param name="setOutletOnWhenComplete">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-    public Timer(TimeSpan duration, bool setOutletOnWhenComplete) {
-        IsEnabled               = true;
-        TotalDuration           = duration;
-        SetOutletOnWhenComplete = setOutletOnWhenComplete;
+    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
+    public Timer(TimeSpan duration, bool willSetOutletOn): this() {
+        IsEnabled       = true;
+        TotalDuration   = duration;
+        WillSetOutletOn = willSetOutletOn;
     }
 
 }

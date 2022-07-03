@@ -73,7 +73,7 @@ public struct SystemInfo {
 
     /// <summary>
     /// <para>Received Signal Strength Indicator. The signal strength of the device's wi-fi connection, expressed as a negative number such as <c>-61</c>. Higher strength signals have values closer to positive infinity.</para>
-    /// <para>The Kasa mobile app reports this value with dBm as the unit, although RSSI is instrinsically unitless, arbitrary, and unstandardized, so take dBm with a grain of salt.</para>
+    /// <para>The Kasa mobile app reports this value with dBm as the unit, although RSSI is intrinsically unitless, arbitrary, and unstandardized, so take dBm with a grain of salt.</para>
     /// </summary>
     // TODO figure out range of possible values
     [JsonProperty("rssi")] public int Rssi { get; internal set; }

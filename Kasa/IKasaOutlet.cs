@@ -65,6 +65,8 @@ public interface IKasaOutlet: IDisposable {
     /// </summary>
     ITimerCommands Timer { get; }
 
+    IScheduleCommands Schedule { get; }
+
     /// <summary>
     /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
     /// </summary>
@@ -266,7 +268,7 @@ public interface IKasaOutlet: IDisposable {
         /// </summary>
         /// <param name="duration">How long the timer should wait, since being started, before turning on or off.</param>
         /// <param name="setOutletOnWhenComplete">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.SetOutletOnWhenComplete"/> as the <paramref name="duration"/> and <paramref name="setOutletOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
+        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setOutletOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
         /// <exception cref="FeatureUnavailable">If the device does not have a timer. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.Timer)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
@@ -281,6 +283,18 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task Clear();
+
+    }
+
+    public interface IScheduleCommands {
+
+        Task<IEnumerable<Schedule>> GetAll();
+
+        Task<Schedule> Save(Schedule schedule);
+
+        Task Delete(Schedule schedule);
+        Task Delete(string   id);
+        Task DeleteAll();
 
     }
 

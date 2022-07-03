@@ -15,7 +15,7 @@ namespace Kasa;
 ///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-public partial class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands, IKasaOutlet.ITimerCommands {
+public partial class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands, IKasaOutlet.ITimerCommands, IKasaOutlet.IScheduleCommands {
 
     private readonly IKasaClient _client;
 

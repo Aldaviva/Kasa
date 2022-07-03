@@ -43,9 +43,10 @@ public class MarshalTests {
 
     [Fact]
     public void ParseTimeSpan() {
-        JsonConvert.DeserializeObject<TimeSpan>(@"1800", new TimeSpanConverter()).Should().Be(TimeSpan.FromMinutes(30));
-        JsonConvert.DeserializeObject<TimeSpan>(@"1800.0", new TimeSpanConverter()).Should().Be(TimeSpan.FromMinutes(30));
-        JsonConvert.DeserializeObject<TimeSpan?>(@"null", new TimeSpanConverter()).Should().BeNull();
+        TimeSpanConverter converter = new();
+        JsonConvert.DeserializeObject<TimeSpan>(@"1800", converter).Should().Be(TimeSpan.FromMinutes(30));
+        JsonConvert.DeserializeObject<TimeSpan>(@"1800.0", converter).Should().Be(TimeSpan.FromMinutes(30));
+        JsonConvert.DeserializeObject<TimeSpan?>(@"null", converter).Should().BeNull();
     }
 
     [Fact]
@@ -92,12 +93,26 @@ public class MarshalTests {
     [InlineData(CommandFamily.Timer, "count_down")]
     [InlineData(CommandFamily.EnergyMeter, "emeter")]
     [InlineData(CommandFamily.NetworkInterface, "netif")]
-    [InlineData(CommandFamily.Scheduling, "schedule")]
+    [InlineData(CommandFamily.Schedule, "schedule")]
     [InlineData(CommandFamily.System, "system")]
     [InlineData(CommandFamily.Time, "time")]
     internal void CommandFamilies(CommandFamily family, string expected) {
         family.ToJsonString().Should().Be(expected);
         Enum.GetNames<CommandFamily>().Length.Should().Be(8);
+    }
+
+    [Theory]
+    [InlineData(CommandFamily.Timer, Feature.Timer)]
+    [InlineData(CommandFamily.EnergyMeter, Feature.EnergyMeter)]
+    internal void CommandFamilyFeature(CommandFamily family, Feature expected) {
+        Feature actual = family.GetRequiredFeature();
+        actual.Should().Be(expected);
+    }
+
+    [Fact]
+    internal void CommandFamilyFeatureUnknown() {
+        Action thrower = () => CommandFamily.System.GetRequiredFeature();
+        thrower.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -113,6 +128,26 @@ public class MarshalTests {
         Timer  rule   = new(TimeSpan.FromMinutes(30), true);
         string actual = JsonConvert.SerializeObject(rule, KasaClient.JsonSettings);
         actual.Should().Be(@"{""name"":""add timer"",""enable"":true,""act"":true,""delay"":1800}");
+    }
+
+    [Fact]
+    public void ParseSchedule() {
+        const string json =
+            @"{""id"":""C886CC2A26D38845C27DA4D5CDA0957D"",""name"":""Schedule Rule"",""enable"":1,""wday"":[0,0,1,1,1,0,0],""stime_opt"":0,""smin"":1185,""sact"":1,""eact"":-1,""repeat"":1}";
+        Schedule actual = JsonConvert.DeserializeObject<Schedule>(json);
+        actual.Id.Should().Be("C886CC2A26D38845C27DA4D5CDA0957D");
+    }
+
+    [Fact]
+    public void SerializeSchedule() {
+        Schedule schedule = new(true, new[] { DayOfWeek.Monday, DayOfWeek.Friday }, new TimeOnly(12, 34));
+        string   actual   = JsonConvert.SerializeObject(schedule, KasaClient.JsonSettings);
+        actual.Should().Be(
+            @"{""etime_opt"":-1,""eact"":-1,""emin"":0,""enable"":true,""id"":null,""name"":""Schedule Rule"",""repeat"":true,""sact"":true,""stime_opt"":0,""wday"":[0,1,0,0,0,1,0],""year"":0,""month"":0,""day"":0,""smin"":754,""soffset"":0}");
+
+        Schedule actual2 = JsonConvert.DeserializeObject<Schedule>(actual, KasaClient.JsonSettings);
+        actual2.Name.Should().Be("Schedule Rule");
+        actual2.StartTimeBasis.Should().Be(Schedule.Basis.StartOfDay);
     }
 
 }

@@ -10,10 +10,12 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
 ILogger logger = loggerFactory.CreateLogger("Main");
 
 using IKasaOutlet outlet = new KasaOutlet("192.168.1.227", new Options {
-    LoggerFactory = loggerFactory
+    LoggerFactory = loggerFactory,
+    MaxAttempts   = 1
 });
 
-string         outletName         = await outlet.System.GetName();
+/*
+ string         outletName         = await outlet.System.GetName();
 SystemInfo     systemInfo         = await outlet.System.GetInfo();
 DateTimeOffset currentDeviceTime  = await outlet.Time.GetTimeWithZoneOffset();
 bool           isOutletOn         = await outlet.System.IsOutletOn();
@@ -35,3 +37,33 @@ if (systemInfo.Features.Contains(Feature.EnergyMeter)) {
 } else {
     logger.LogInformation("No energy meter");
 }
+*/
+
+await outlet.Schedule.DeleteAll();
+
+Schedule schedule = await outlet.Schedule.Save(new Schedule(true, new[] { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday }, new TimeOnly(12 + 7, 45)));
+logger.LogInformation("Created schedule with ID {Id}", schedule.Id);
+
+IEnumerable<Schedule> schedules = await outlet.Schedule.GetAll();
+foreach (Schedule s in schedules) {
+    Schedule sch = s;
+    logger.LogInformation("Turn {onOff} at {time} on {days}{enabled}", s.WillSetOutletOn ? "on " : "off",
+        s.StartTimeBasis switch {
+            Schedule.Basis.StartOfDay => TimeOnly.FromTimeSpan(s.TimeSinceBasis),
+            Schedule.Basis.Sunrise    => $"{s.TimeSinceBasis:%m} min {(s.TimeSinceBasis < TimeSpan.Zero ? "before" : "after")} sunrise",
+            Schedule.Basis.Sunset     => $"{s.TimeSinceBasis:%m} min {(s.TimeSinceBasis < TimeSpan.Zero ? "before" : "after")} sunset"
+        }, s.Repeat ? string.Join(", ", s.DaysOfWeek) : s.Date, s.IsEnabled ? "" : " (disabled)");
+
+    sch.IsEnabled = false;
+    await outlet.Schedule.Save(sch);
+    //
+    // await outlet.Schedule.Delete(sch);
+}
+
+// await outlet.Schedule.Delete(schedule);
+// await outlet.Schedule.Delete(schedule.Id!);
+// await outlet.Schedule.DeleteAll();
+
+
+
+

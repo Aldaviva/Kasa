@@ -16,7 +16,7 @@
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageIcon>icon.png</PackageIcon>
 
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <IncludeSource>true</IncludeSource>
@@ -35,6 +35,11 @@
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(TargetFramework)' != 'net6.0' ">
+        <!-- Polyfill for DateOnly and TimeOnly, which were added to .NET 6 -->
+        <PackageReference Include="Portable.System.DateTimeOnly" Version="6.0.1" />
     </ItemGroup>
 
     <ItemGroup>

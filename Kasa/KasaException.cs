@@ -64,10 +64,11 @@ public class FeatureUnavailable: KasaException {
     /// <para>To check ahead of time if an outlet has a feature, you can call <c>(await IKasaOutlet.System.GetInfo()).Features</c>.</para>
     /// </summary>
     public FeatureUnavailable(string requestMethod, Feature requiredFeature, string hostname): base(
-        $"Kasa device is missing a feature required to run the {requestMethod} command. You can check {nameof(IKasaOutlet)}.{CommandFamily.System}.{nameof(IKasaOutlet.ISystemCommands.GetInfo)}().Features to see which features your device has.",
+        $"The Kasa device {hostname} is missing the {requiredFeature} feature, which is required to run the {requestMethod} command. You can check {nameof(IKasaOutlet)}.{CommandFamily.System}.{nameof(IKasaOutlet.ISystemCommands.GetInfo)}().Features to see which features your device has.",
         hostname) {
         RequestMethod   = requestMethod;
         RequiredFeature = requiredFeature;
+        HResult         = -1;
     }
 
 }
@@ -105,3 +106,11 @@ public class ResponseParsingException: KasaException {
     }
 
 }
+
+// public class KasaArgumentException: KasaException {
+//
+//     public KasaArgumentException(string requestMethod, string hostname): base($"Invalid arguments passed to {requestMethod}", hostname) {
+//         HResult = -3;
+//     }
+//
+// }
