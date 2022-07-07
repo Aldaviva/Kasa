@@ -1,6 +1,7 @@
 ﻿using Kasa;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Timer = System.Threading.Timer;
 
 ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .ClearProviders()
@@ -13,6 +14,26 @@ using IKasaOutlet outlet = new KasaOutlet("192.168.1.227", new Options {
     LoggerFactory = loggerFactory,
     MaxAttempts   = 1
 });
+
+int minSignalStrength = 0;
+
+CancellationTokenSource cts = new();
+
+Timer timer = new(async _ => {
+    SystemInfo systemInfo = await outlet.System.GetInfo();
+    int        rssi       = systemInfo.SignalStrength;
+    logger.LogDebug("Signal strength: {rssi} dBm", rssi);
+
+    if (rssi < minSignalStrength) {
+        logger.LogInformation("New minimum signal strength: {rssi} dBm", rssi);
+        minSignalStrength = rssi;
+    }
+}, null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+
+Console.CancelKeyPress += (sender, eventArgs) => cts.Cancel();
+
+cts.Token.WaitHandle.WaitOne();
+timer.Dispose();
 
 /*
  string         outletName         = await outlet.System.GetName();
@@ -27,7 +48,7 @@ logger.LogInformation("Outlet state: {0}", isOutletOn ? "on" : "off");
 logger.LogInformation("Time: {0:O}", currentDeviceTime);
 logger.LogInformation("Hardware version: {0}", systemInfo.HardwareVersion);
 logger.LogInformation("Software version: {0}", systemInfo.SoftwareVersion);
-logger.LogInformation("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.Rssi);
+logger.LogInformation("MAC Address (RSSI): {0} ({1})", systemInfo.MacAddress, systemInfo.SignalStrength);
 logger.LogInformation("Indicator light: {0}", isIndicatorLightOn ? "on" : "off");
 logger.LogInformation("Mode: {0}", systemInfo.OperatingMode);
 
@@ -39,26 +60,21 @@ if (systemInfo.Features.Contains(Feature.EnergyMeter)) {
 }
 */
 
-await outlet.Schedule.DeleteAll();
+// await outlet.Schedule.DeleteAll();
 
-Schedule schedule = await outlet.Schedule.Save(new Schedule(true, new[] { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday }, new TimeOnly(12 + 7, 45)));
+/*Schedule schedule = new(true, new[] { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday }, new TimeOnly(12 + 7, 45));
+schedule = await outlet.Schedule.Save(schedule);
 logger.LogInformation("Created schedule with ID {Id}", schedule.Id);
 
 IEnumerable<Schedule> schedules = await outlet.Schedule.GetAll();
 foreach (Schedule s in schedules) {
-    Schedule sch = s;
     logger.LogInformation("Turn {onOff} at {time} on {days}{enabled}", s.WillSetOutletOn ? "on " : "off",
-        s.StartTimeBasis switch {
-            Schedule.Basis.StartOfDay => TimeOnly.FromTimeSpan(s.TimeSinceBasis),
-            Schedule.Basis.Sunrise    => $"{s.TimeSinceBasis:%m} min {(s.TimeSinceBasis < TimeSpan.Zero ? "before" : "after")} sunrise",
-            Schedule.Basis.Sunset     => $"{s.TimeSinceBasis:%m} min {(s.TimeSinceBasis < TimeSpan.Zero ? "before" : "after")} sunset"
-        }, s.Repeat ? string.Join(", ", s.DaysOfWeek) : s.Date, s.IsEnabled ? "" : " (disabled)");
-
-    sch.IsEnabled = false;
-    await outlet.Schedule.Save(sch);
-    //
-    // await outlet.Schedule.Delete(sch);
-}
+        s.TimeBasis switch {
+            Schedule.Basis.StartOfDay => TimeOnly.FromTimeSpan(s.Time),
+            Schedule.Basis.Sunrise    => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunrise",
+            Schedule.Basis.Sunset     => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunset"
+        }, s.IsRecurring ? string.Join(", ", s.DaysOfWeek) : s.Date, s.IsEnabled ? "" : " (disabled)");
+}*/
 
 // await outlet.Schedule.Delete(schedule);
 // await outlet.Schedule.Delete(schedule.Id!);

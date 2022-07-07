@@ -72,11 +72,10 @@ public struct SystemInfo {
     [JsonProperty("relay_state")] internal bool IsOutletOn { get; set; }
 
     /// <summary>
-    /// <para>Received Signal Strength Indicator. The signal strength of the device's wi-fi connection, expressed as a negative number such as <c>-61</c>. Higher strength signals have values closer to positive infinity.</para>
-    /// <para>The Kasa mobile app reports this value with dBm as the unit, although RSSI is intrinsically unitless, arbitrary, and unstandardized, so take dBm with a grain of salt.</para>
+    /// <para>Received Signal Strength Indicator. The signal strength of the device's Wi-Fi connection, expressed as a non-positive number such as <c>-61</c>. The strongest signal has a value of <c>0</c>, while a very weak signal has a value around <c>-77</c>.</para>
+    /// <para>The Kasa mobile app reports this value with <c>dBm</c> as the unit, although RSSI is intrinsically unitless, arbitrary, and unstandardized, so take dBm with a grain of salt.</para>
     /// </summary>
-    // TODO figure out range of possible values
-    [JsonProperty("rssi")] public int Rssi { get; internal set; }
+    [JsonProperty("rssi")] public int SignalStrength { get; internal set; }
 
     /// <summary>
     /// The version of the firmware that is running on the device, such as <c>1.0.2 Build 200915 Rel.085940</c> or <c>1.0.8 Build 220130 Rel.174717</c>.

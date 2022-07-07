@@ -82,7 +82,7 @@ public class MarshalTests {
         actual.ModelFamily.Should().Be("Smart Wi-Fi Plug Mini");
         actual.Name.Should().Be("SX20");
         actual.OemId.Should().Be("41372DE62C896B2C0E93C20D70B62DDB");
-        actual.Rssi.Should().Be(-61);
+        actual.SignalStrength.Should().Be(-61);
         actual.SoftwareVersion.Should().Be("1.0.2 Build 200915 Rel.085940");
         actual.Updating.Should().BeFalse();
     }
@@ -147,7 +147,7 @@ public class MarshalTests {
 
         Schedule actual2 = JsonConvert.DeserializeObject<Schedule>(actual, KasaClient.JsonSettings);
         actual2.Name.Should().Be("Schedule Rule");
-        actual2.StartTimeBasis.Should().Be(Schedule.Basis.StartOfDay);
+        actual2.TimeBasis.Should().Be(Schedule.Basis.StartOfDay);
     }
 
 }

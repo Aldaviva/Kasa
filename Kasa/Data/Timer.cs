@@ -13,7 +13,7 @@ public struct Timer {
     /// <summary>
     /// <para>The optional name of the timer.</para>
     /// <para>Only visible in the outlet's API, not the Kasa Android app.</para>
-    /// <para>The app always sets this value to <c>add timer</c>, which is also the default for this library.</para>
+    /// <para>The Android app always sets this value to <c>add timer</c>, which is also the default for this library.</para>
     /// </summary>
     public string Name { get; set; } = "add timer";
 

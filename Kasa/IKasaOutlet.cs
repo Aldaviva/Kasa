@@ -29,9 +29,9 @@ public interface IKasaOutlet: IDisposable {
     Options Options { get; set; }
 
     /// <summary>
-    /// <para>Connects to the outlet using the given hostname.</para>
+    /// <para>Eagerly connects to the outlet using the given hostname.</para>
     /// <para>You may optionally call this to explicitly connect before sending any commands on the outlet.</para>
-    /// <para>If you don't call this method before sending a command (such as <c>IKasaOutlet.System.GetInfo()</c>), then this instance will automatically connect before sending that command.</para>
+    /// <para>If you don't call this method before sending a command (such as <c>IKasaOutlet.System.GetInfo()</c>), then this instance will automatically lazily connect before sending that command.</para>
     /// <para>Explicit connection may be more helpful for early detection of errors, as well as for reducing the latency of the first command. Automatic connection may be more convenient because there are fewer methods to invoke.</para>
     /// <para>If this instance is already connected, then this call does nothing and returns immediately.</para>
     /// </summary>
@@ -59,12 +59,17 @@ public interface IKasaOutlet: IDisposable {
 
     /// <summary>
     /// <para>Commands that deal with countdown timers.</para>
-    /// <para>Timers allow you to schedule the outlet to turn on or off once after a delay of configurable duration.</para>
+    /// <para>Timers allow you to set the outlet to turn on or off once after a delay of configurable duration.</para>
     /// <para>Outlets can handle at most one timer at once.</para>
     /// <para>This is unrelated to the current time of the device's internal clock, see <see cref="Time"/>.</para>
     /// </summary>
     ITimerCommands Timer { get; }
 
+    /// <summary>
+    /// <para>Commands that deal with schedules.</para>
+    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// <para>Outlets can handle multiple schedules at once.</para>
+    /// </summary>
     IScheduleCommands Schedule { get; }
 
     /// <summary>
@@ -286,14 +291,55 @@ public interface IKasaOutlet: IDisposable {
 
     }
 
+    /// <summary>
+    /// <para>Commands that deal with schedules.</para>
+    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// </summary>
     public interface IScheduleCommands {
 
+        /// <summary>
+        /// Fetch all of the existing schedules from the outlet.
+        /// </summary>
+        /// <returns>A enumerable of <see cref="Schedule"/> rules, or the empty enumerable if the device has no schedules on it.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task<IEnumerable<Schedule>> GetAll();
 
+        /// <summary>
+        /// <para>Persist a schedule to the outlet.</para>
+        /// <para>To insert a new schedule, construct a new <see cref="Schedule"/> instance, leaving its <see cref="Schedule.Id"/> property <c>null</c>. After saving it with this method, the returned instance will be a copy with the <see cref="Schedule.Id"/> value populated.</para>
+        /// <para>To update an existing schedule, retrieve it using <see cref="GetAll"/>, make any changes you like, then save it with this method.</para>
+        /// </summary>
+        /// <param name="schedule">A new or existing schedule to insert or update.</param>
+        /// <returns>The persisted instance, which always has a non-null <see cref="Schedule.Id"/> value.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task<Schedule> Save(Schedule schedule);
 
+        /// <summary>
+        /// Remove an existing schedule from the outlet.
+        /// </summary>
+        /// <param name="schedule">The existing schedule to delete.</param>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="ArgumentException">If the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="GetAll"/> or <see cref="Save"/>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task Delete(Schedule schedule);
-        Task Delete(string   id);
+
+        /// <summary>
+        /// Remove an existing schedule from the outlet.
+        /// </summary>
+        /// <param name="id">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task Delete(string id);
+
+        /// <summary>
+        /// Clear all existing schedules from the outlet.
+        /// </summary>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task DeleteAll();
 
     }

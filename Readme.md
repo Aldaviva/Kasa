@@ -36,6 +36,11 @@ Kasa
         - [Get](#get)
         - [Start](#start)
         - [Clear](#clear)
+    - [Schedule](#schedule)
+        - [GetAll](#getall)
+        - [Save](#save)
+        - [Delete](#delete)
+        - [DeleteAll](#deleteall)
     - [Energy Meter](#energy-meter)
         - [GetInstantaneousPowerUsage](#getinstantaneouspowerusage)
         - [GetDailyEnergyUsage](#getdailyenergyusage)
@@ -90,7 +95,7 @@ You can install this library into your project from [NuGet Gallery](https://www.
         ```sh
         nmap --open -pT:9999 192.168.1.0/24
         ```
-    - You can also use its FQDN if you assigned one.
+    - You can also use its FQDN if you assigned one using DNS.
 1. Construct a new **`KasaOutlet`** instance in your project, passing the device's hostname as a constructor parameter.
     ```cs
     using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100");
@@ -101,11 +106,11 @@ You can install this library into your project from [NuGet Gallery](https://www.
 <a id="connections"></a>
 ### Connections
 
-The `KasaOutlet` instance will try to transparently handle the TCP connection for you. It will automatically ensure the TCP socket is connected to the Kasa device's server before sending any commands.
+The `KasaOutlet` instance will try to transparently handle the TCP connection for you. It will automatically lazily ensure the TCP socket is connected to the Kasa device's server before sending any commands.
 
-If the connection drops, for example if the device reboots, it will automatically attempt to reconnect multiple times before sending the next command, with a delay between attempts. The number of attempts and delay duration can be adjusted using the [options](#options) below.
+If the connection drops, for example if the device reboots, it will automatically attempt to reconnect multiple times before sending the next command, with a delay between attempts. The number of attempts and delay duration can be adjusted using the [options](#options) below. If all reconnections fail, it will throw a `NetworkException` (see [Exceptions](#exceptions) below).
 
-Optionally, you may manually connect before sending any commands, if you want to connect early to test the connection or ensure lower latency for the first command:
+Optionally, you may manually eagerly connect before sending any commands, if you want to connect early to test the connection or ensure lower latency for the first command:
 
 ```cs
 await kasa.Connect();
@@ -269,7 +274,7 @@ SystemInfo systemInfo = await kasa.System.GetInfo();
 Console.WriteLine($"Operating mode: {systemInfo.OperatingMode}");
 Console.WriteLine($"Model name: {systemInfo.ModelName}");
 Console.WriteLine($"Model family: {systemInfo.ModelFamily}");
-Console.WriteLine($"RSSI: {systemInfo.Rssi}");
+Console.WriteLine($"Signal strength: {systemInfo.SignalStrength} dBm");
 Console.WriteLine($"Features: {string.Join(", ", systemInfo.Features)}");
 Console.WriteLine($"MAC address: {systemInfo.MacAddress}");
 Console.WriteLine($"Device ID: {systemInfo.DeviceId}");
@@ -283,7 +288,7 @@ Console.WriteLine($"OEM ID: {systemInfo.OemId}");
 Operating mode: Schedule
 Model name: EP10(US)
 Model family: Smart Wi-Fi Plug Mini
-RSSI: -49
+Signal strength: -49 dBm
 Features: Timer
 MAC address: 5CA6E64EF3EF
 Device ID: 8006C153CFEBDE93CD3572549B5A47611F49F0D2
@@ -437,11 +442,79 @@ Idempotent: this will succeed even if there are no timers to delete.
 await outlet.Timers.Clear();
 ```
 
+<a id="schedule"></a>
+### Schedule
+Commands that deal with schedules.
+
+Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.
+
+<a id="getall"></a>
+#### GetAll
+Fetch all of the existing schedules from the outlet.
+```cs
+IEnumerable<Schedule> schedules = await outlet.Schedule.GetAll();
+foreach (Schedule s in schedules) {
+    string time = s.TimeBasis switch {
+        Schedule.Basis.StartOfDay => TimeOnly.FromTimeSpan(s.Time).ToString(),
+        Schedule.Basis.Sunrise    => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunrise",
+        Schedule.Basis.Sunset     => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunset"
+    };
+    Console.WriteLine($"Turn {(s.WillSetOutletOn ? "on " : "off")} at {time} on {(s.IsRecurring ? string.Join(", ", s.DaysOfWeek) : s.Date)}{(s.IsEnabled ? "" : " (disabled)")}");
+}
+```
+```text
+Turn on  at 19:45 on Tuesday, Wednesday, Thursday
+Turn off at 23:45 on Monday, Tuesday, Wednesday, Thursday
+Turn on  at 18:45 on Monday
+```
+
+<a id="save"></a>
+#### Save
+Persist a schedule to the outlet.
+
+To insert a new schedule, construct a new `Schedule` instance, leaving its `Schedule.Id` property `null`. After saving it with this method, the returned instance will be a copy with the `Schedule.Id` value populated.
+
+To update an existing schedule, retrieve it using `GetAll`, make any changes you like, then save it with this method.
+
+```cs
+Schedule schedule = new(true, new[] { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday }, new TimeOnly(12 + 7, 45));
+schedule = await outlet.Schedule.Save(schedule);
+Console.WriteLine($"Created schedule with ID {schedule.Id}");
+```
+```text
+Created schedule with ID 0D3D1C778103039FEBCAB23C261AD821
+```
+
+<a id="delete"></a>
+#### Delete
+Remove an existing schedule from the outlet.
+
+You can pass an existing Schedule instance or just its `Id`.
+
+```cs
+Schedule schedule = (await outlet.Schedule.GetAll()).First();
+await outlet.Schedule.Delete(schedule);
+```
+```cs
+await outlet.Schedule.Delete("0D3D1C778103039FEBCAB23C261AD821");
+```
+
+<a id="deleteall"></a>
+#### DeleteAll
+Clear all existing schedules from the outlet.
+
+```cs
+await outlet.Schedule.DeleteAll();
+```
+
 <a id="energy-meter"></a>
 ### Energy Meter
 Commands that deal with the energy meter present in some Kasa devices, such as the KP125 and KP115.
 
-To determine if your device has an energy meter, you can call `(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter)`.
+To determine if your device has an energy meter, you can call:
+```cs
+bool hasFeature = (await kasaOutlet.System.GetInfo()).Features.Contains(Feature.EnergyMeter);
+```
 
 <a id="getinstantaneouspowerusage"></a>
 #### GetInstantaneousPowerUsage
@@ -516,6 +589,8 @@ All known exceptions thrown by this library are documented in the comments of ea
 Each command can throw two main exceptions:
 - **`NetworkException`** if the TCP socket connection failed and could not be automatically recovered. Check the inner `SocketException` or `IOException` for the cause.
 - **`ResponseParsingException`** if the TCP server returned JSON that could not be deserialized, possibly because the API changed or the device is unsupported.
+
+If you try to run a command on an outlet that doesn't support it, it will throw a **`FeatureUnavailable`** exception, for example, if you try to retrieve the energy usage of an EP10 outlet which doesn't have an energy meter. You can check the `RequiredFeature` property of the exception to see which `Feature` was required, and you can call `IKasaOutlet.System.GetInfo()` and check the contents of the returned `SystemInfo` struct's `Features` set to see which features your outlet offers.
 
 Some methods also throw other exceptions in specific cases, such as `ArgumentOutOfRangeException` or `TimeZoneNotFoundException`.
 
