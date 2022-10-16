@@ -446,7 +446,7 @@ await outlet.Timers.Clear();
 ### Schedule
 Commands that deal with schedules.
 
-Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.
+Schedules allow you to set the outlet to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.
 
 <a id="getall"></a>
 #### GetAll

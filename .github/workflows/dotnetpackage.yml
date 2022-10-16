@@ -25,7 +25,7 @@ jobs:
 
     - name: Test
       run: |
-        dotnet test --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage" --settings Test/coverlet.runsettings
+        dotnet test --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage" --settings Test/coverlet.runsettings --logger "trx;LogFileName=TestResults.xml"
         mv Test/TestResults/*/coverage.info Test/TestResults
 
     - name: Pack
@@ -36,6 +36,9 @@ jobs:
       with:
         name: ${{ env.ProjectName }}.nupkg
         path: ${{ env.ProjectName }}/bin/Release/*.*nupkg
+
+    - name: Upload test report
+      run: testspace Test/TestResults/TestResults.xml
 
     - name: Upload coverage
       uses: coverallsapp/github-action@master

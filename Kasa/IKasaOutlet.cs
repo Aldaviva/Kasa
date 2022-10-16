@@ -293,7 +293,7 @@ public interface IKasaOutlet: IDisposable {
 
     /// <summary>
     /// <para>Commands that deal with schedules.</para>
-    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
     /// </summary>
     public interface IScheduleCommands {
 
