@@ -17,11 +17,16 @@ jobs:
     - name: Clone
       uses: actions/checkout@v3
         
+    - name: Initialize test reporting
+      uses: testspace-com/setup-testspace@v1
+      with:
+        domain: ${{github.repository_owner}}
+
     - name: Restore
-      run: dotnet restore
+      run: dotnet restore --verbosity normal
 
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build --no-restore --configuration Release --verbosity normal
 
     - name: Test
       run: |
@@ -29,7 +34,7 @@ jobs:
         mv Test/TestResults/*/coverage.info Test/TestResults
 
     - name: Pack
-      run: dotnet pack ${{ env.ProjectName }} --no-build --configuration Release
+      run: dotnet pack ${{ env.ProjectName }} --no-build --configuration Release --verbosity normal
 
     - name: Upload package
       uses: actions/upload-artifact@v3
