@@ -108,10 +108,11 @@ internal class KasaClient: IKasaClient {
 
     /// <inheritdoc />
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
-    public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
+    public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null, string[]? childIds = null)
+    {
         await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
         try {
-            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters);
+            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters, childIds);
 
 #pragma warning disable Ex0100 // Member may throw undocumented exception
             return await Retrier.InvokeWithRetry(Attempt, Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed).ConfigureAwait(false);
@@ -132,15 +133,16 @@ internal class KasaClient: IKasaClient {
     // ExceptionAdjustment: M:System.Threading.Interlocked.Increment(System.Int64@) -T:System.NullReferenceException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.ReadAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
-    private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters) {
+    private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters, string[]? childIds = null)
+    {
         /*
          * Send request
          */
 
         Stream tcpStream = await GetNetworkStream().ConfigureAwait(false);
-        long   requestId = Interlocked.Increment(ref _requestId);
-        JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
-            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer)))));
+        long requestId = Interlocked.Increment(ref _requestId);
+        JObject request = BuildRequest(commandFamily, methodName, parameters, childIds);
+
         byte[] requestBytes = Serialize(request, requestId);
         byte[] headerBuffer = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(requestBytes.Length));
 
@@ -168,6 +170,71 @@ internal class KasaClient: IKasaClient {
         }
 
         return Deserialize<T>(payloadBuffer, requestId, request, commandFamily, methodName);
+    }
+
+    private static JObject BuildRequest(CommandFamily commandFamily, string methodName, object? parameters, string[]? childIds = null)
+    {
+        JObject request = new JObject();
+
+        try
+        {
+            if (childIds is null)
+            {
+                request = new
+                (
+                    new JProperty(
+                        commandFamily.ToJsonString(),
+                        new JObject
+                        (
+                            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer))
+                        )
+                    )
+                );
+            }
+            else
+            {
+                request = new
+                (
+                    new JProperty
+                    (
+                        "context", new JObject
+                        (
+                            new JProperty
+                            (
+                                "child_ids", JToken.FromObject(childIds, JsonSerializer)
+                            )
+                        )
+                    ),
+                    new JProperty(
+                        commandFamily.ToJsonString(),
+                        new JObject
+                        (
+                            new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer))
+                        )
+                    )
+                );
+            }
+            // request.Add(
+            //     new JProperty
+            //     (
+            //         "context", new JObject
+            //         (
+            //             new JProperty
+            //             (
+            //                 "child_ids", JToken.FromObject(childIds, JsonSerializer)
+            //             )
+            //         )
+            //     )
+            // );
+        }
+        catch (Exception ex)
+        {
+            var serializedObject1 = Newtonsoft.Json.JsonConvert.SerializeObject(request);
+        }
+
+        var serializedObject = Newtonsoft.Json.JsonConvert.SerializeObject(request);
+
+        return request;
     }
 
     /// <exception cref="SocketException">The TCP socket failed to connect.</exception>

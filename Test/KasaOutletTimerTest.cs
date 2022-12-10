@@ -11,7 +11,7 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
     [Fact]
     public async Task GetOne() {
         JObject json = JObject.Parse(@"{""rule_list"":[{""id"":""BD8AED3F853C175935F0A5BC24C454F4"",""name"":""test"",""enable"":1,""delay"":1800,""act"":1,""remain"":1800}],""err_code"":0}");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, null)).Returns(json);
 
         Timer actual = (await Outlet.Timer.Get())!.Value;
         actual.Name.Should().Be("test");
@@ -24,7 +24,7 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
     [Fact]
     public async Task GetElapsed() {
         JObject json = JObject.Parse(@"{""rule_list"":[{""id"":""BD8AED3F853C175935F0A5BC24C454F4"",""name"":""test"",""enable"":0,""delay"":0,""act"":1,""remain"":0}],""err_code"":0}");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, null)).Returns(json);
 
         Timer? actual = await Outlet.Timer.Get();
         actual.Should().BeNull();
@@ -33,7 +33,7 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
     [Fact]
     public async Task GetNone() {
         JObject json = JObject.Parse(@"{""rule_list"":[],""err_code"":0}");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, null)).Returns(json);
 
         Timer? actual = await Outlet.Timer.Get();
         actual.Should().BeNull();
@@ -42,14 +42,14 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
     [Fact]
     public async Task Clear() {
         JObject json = JObject.Parse(@"{""err_code"":0}");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", null, null)).Returns(json);
 
         await Outlet.Timer.Clear();
     }
 
     [Fact]
     public async Task Set() {
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null))
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, null))
             .Returns(JObject.Parse(@"{""rule_list"":[{""id"":""BD8AED3F853C175935F0A5BC24C454F4"",""name"":""test"",""enable"":1,""delay"":1800,""act"":1,""remain"":1800}],""err_code"":0}"));
 
         Timer actual = await Outlet.Timer.Start(TimeSpan.FromMinutes(30), true);
@@ -60,9 +60,9 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
         actual.RemainingDuration.Should().Be(TimeSpan.FromMinutes(30));
         actual.WillSetOutletOn.Should().BeTrue();
 
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", null)).MustHaveHappened()
-            .Then(A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "add_rule", new Timer(TimeSpan.FromMinutes(30), true))).MustHaveHappened())
-            .Then(A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null)).MustHaveHappened());
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", null, null)).MustHaveHappened()
+            .Then(A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "add_rule", new Timer(TimeSpan.FromMinutes(30), true), null)).MustHaveHappened())
+            .Then(A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, null)).MustHaveHappened());
     }
 
 }

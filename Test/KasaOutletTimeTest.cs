@@ -10,7 +10,7 @@ public class KasaOutletTimeTest: AbstractKasaOutletTest {
     [Fact]
     public async Task GetTime() {
         JObject json = JObject.Parse(@"{""year"":2022,""month"":5,""mday"":29,""hour"":22,""min"":33,""sec"":22}");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_time", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_time", null, null)).Returns(json);
 
         DateTime actual = await Outlet.Time.GetTime();
         actual.Should().Be(new DateTime(2022, 5, 29, 22, 33, 22));
@@ -24,15 +24,15 @@ public class KasaOutletTimeTest: AbstractKasaOutletTest {
     [InlineData(75, "India Standard Time")]
     public async Task GetTimeZones(int kasaZoneIndex, string windowsZoneId) {
         JObject json = new(new JProperty("index", kasaZoneIndex));
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null, null)).Returns(json);
         IEnumerable<TimeZoneInfo> actual = await Outlet.Time.GetTimeZones();
         actual.Should().Contain(info => info.Id == windowsZoneId);
     }
 
     [Fact]
     public async Task GetTimeZoneWithOffset() {
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_time", null)).Returns(JObject.Parse(@"{""year"":2022,""month"":5,""mday"":29,""hour"":22,""min"":33,""sec"":22}"));
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null)).Returns(new JObject(new JProperty("index", 6)));
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_time", null, null)).Returns(JObject.Parse(@"{""year"":2022,""month"":5,""mday"":29,""hour"":22,""min"":33,""sec"":22}"));
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null, null)).Returns(new JObject(new JProperty("index", 6)));
 
         DateTimeOffset actual = await Outlet.Time.GetTimeWithZoneOffset();
 
@@ -47,7 +47,7 @@ public class KasaOutletTimeTest: AbstractKasaOutletTest {
     [InlineData(75, "India Standard Time")]
     public async Task SetTimeZone(int kasaZoneIndex, string windowsZoneId) {
         await Outlet.Time.SetTimeZone(TimeZoneInfo.FindSystemTimeZoneById(windowsZoneId));
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "set_timezone", An<object>.That.HasProperty("index", kasaZoneIndex))).MustHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "set_timezone", An<object>.That.HasProperty("index", kasaZoneIndex), null)).MustHaveHappened();
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class KasaOutletTimeTest: AbstractKasaOutletTest {
         map[kasaId] = new[] { "fake windows timezone ID" };
 
         JObject json = new(new JProperty("index", kasaId));
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null)).Returns(json);
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.Time, "get_timezone", null, null)).Returns(json);
 
         IEnumerable<TimeZoneInfo> actual = await Outlet.Time.GetTimeZones();
         actual.Should().BeEmpty();
