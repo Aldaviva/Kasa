@@ -99,6 +99,18 @@ public interface IKasaOutlet: IDisposable {
         Task SetOutletOn(bool turnOn);
 
         /// <summary>
+        /// <para>Turn on or off the device's children outlets so it can supply power to any connected electrical consumers or not.</para>
+        /// <para>You can also toggle the outlet by pressing the physical button on the device.</para>
+        /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
+        /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.</para>
+        /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="Reboot"/>.</para>
+        /// </summary>
+        /// <param name="turnOnChild"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task SetAllChildOutletOn(bool turnOn);
+
+        /// <summary>
         /// <para>Get data about the device, including hardware, software, configuration, and current state.</para>
         /// </summary>
         /// <returns>Data about the device</returns>

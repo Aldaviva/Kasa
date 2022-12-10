@@ -93,4 +93,8 @@ public struct SystemInfo {
     /// </summary>
     [JsonProperty("feature")] public ISet<Feature> Features { get; internal set; }
 
+    /// <summary>
+    /// Children switches in a single device
+    /// </summary>
+    [JsonProperty("children")] public ISet<Child> Children { get; internal set; }
 }
