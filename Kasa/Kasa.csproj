@@ -42,7 +42,7 @@
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
         <!-- Polyfill for DateOnly and TimeOnly, which were added to .NET 6 -->
-        <PackageReference Include="Portable.System.DateTimeOnly" Version="7.0.0" />
+        <PackageReference Include="Portable.System.DateTimeOnly" Version="7.0.1" />
     </ItemGroup>
 
     <ItemGroup>
