@@ -50,13 +50,16 @@ Kasa
 1. [References](#references)
 
 <!-- /MarkdownTOC -->
-</details></p>
+</details>
+</p>
 
 ![Kasa EP10](.github/images/readme-header.jpg)
 
 <a id="quick-start"></a>
 ## Quick Start
 ```cs
+using Kasa;
+
 using IKasaOutlet kasa = new KasaOutlet("192.168.1.100");
 if (!await kasa.System.IsOutletOn()) {
     await kasa.System.SetOutletOn(true);
