@@ -5,10 +5,9 @@ Kasa
 
 *Control TP-Link Kasa smart outlets/plugs*
 
-<p><details>
-    <summary><strong>Table of Contents</strong></summary>
+![Kasa EP10](.github/images/readme-header.jpg)
 
-<!-- MarkdownTOC autolink="true" bracket="round" autoanchor="false" levels="1,2,3,4" bullets="1.,-,-,-" -->
+<!-- MarkdownTOC autolink="true" bracket="round" autoanchor="false" levels="1,2,3" bullets="1.,-,-,-" -->
 
 1. [Quick Start](#quick-start)
 1. [Prerequisites](#prerequisites)
@@ -16,44 +15,17 @@ Kasa
 1. [Configuration](#configuration)
     - [Connections](#connections)
     - [Options](#options)
-        - [Logging](#logging)
 1. [Commands](#commands)
     - [System](#system)
-        - [IsOutletOn](#isoutleton)
-        - [SetOutletOn](#setoutleton)
-        - [GetName](#getname)
-        - [SetName](#setname)
-        - [GetInfo](#getinfo)
-        - [IsIndicatorLightOn](#isindicatorlighton)
-        - [SetIndicatorLightOn](#setindicatorlighton)
-        - [Reboot](#reboot)
     - [Time](#time)
-        - [GetTime](#gettime)
-        - [GetTimeWithZoneOffset](#gettimewithzoneoffset)
-        - [GetTimeZones](#gettimezones)
-        - [SetTimeZone](#settimezone)
     - [Timer](#timer)
-        - [Get](#get)
-        - [Start](#start)
-        - [Clear](#clear)
     - [Schedule](#schedule)
-        - [GetAll](#getall)
-        - [Save](#save)
-        - [Delete](#delete)
-        - [DeleteAll](#deleteall)
     - [Energy Meter](#energy-meter)
-        - [GetInstantaneousPowerUsage](#getinstantaneouspowerusage)
-        - [GetDailyEnergyUsage](#getdailyenergyusage)
-        - [GetMonthlyEnergyUsage](#getmonthlyenergyusage)
-        - [DeleteHistoricalUsage](#deletehistoricalusage)
 1. [Exceptions](#exceptions)
+1. [Supporting additional devices](#supporting-additional-devices)
 1. [References](#references)
 
 <!-- /MarkdownTOC -->
-</details>
-</p>
-
-![Kasa EP10](.github/images/readme-header.jpg)
 
 ## Quick Start
 ```cs
@@ -583,6 +555,17 @@ Each command can throw two main exceptions:
 If you try to run a command on an outlet that doesn't support it, it will throw a **`FeatureUnavailable`** exception, for example, if you try to retrieve the energy usage of an EP10 outlet which doesn't have an energy meter. You can check the `RequiredFeature` property of the exception to see which `Feature` was required, and you can call `IKasaOutlet.System.GetInfo()` and check the contents of the returned `SystemInfo` struct's `Features` set to see which features your outlet offers.
 
 Some methods also throw other exceptions in specific cases, such as `ArgumentOutOfRangeException` or `TimeZoneNotFoundException`. Check the `<exception>` XML documentation comments for each method, or use an exception checker tool like [Exception Analyzers 2022](https://marketplace.visualstudio.com/items?itemName=carlreinke.ExceptionAnalyzers2022).
+
+## Supporting additional devices
+
+If you want this library to support [more Kasa smart outlets](https://www.kasasmart.com/us/products/smart-plugs), then you may help me buy the hardware to develop, test, and document those integrations with [Amazon wishlist gifts](https://www.amazon.com/hz/wishlist/ls/19QN9PU1W8CRE?ref_=wl_share) or [PayPal donations](https://paypal.me/aldaviva) (you can specify a funding goal in the donation description).
+
+#### Funding goals
+
+|Image|Name|Outlets|Weatherproofing|Form factor|Cost|
+|-|-|-:|-|-|-:|
+|<img src="https://images.prismic.io/kasasmart/a96da5fd-fc52-487d-ac6f-771f38622638_EP40_US_1.0+Set-up-Images-%E5%8D%95%E5%8F%AA-%E5%88%97%E8%A1%A8%E9%A1%B5.png?auto=compress,format&rect=0,0,1000,1000&w=520&h=520" width="65" alt="EP40"/>|[**EP40**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-outdoor-plug)|2|Outdoor|Dongle|27 USD|
+|<img src="https://images.prismic.io/kasasmart/9f880cc19580fe350c8623e1a9e82efe246e8996_kp303.png?auto=compress,format" width="65" alt="KP303"/>|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|33 USD|
 
 ## References
 - [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*

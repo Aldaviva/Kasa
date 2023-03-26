@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Clone
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.5.0
         
     - name: Initialize test reporting
       uses: testspace-com/setup-testspace@v1
@@ -31,16 +31,9 @@ jobs:
     - name: Test
       run: |
         dotnet test --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage" --settings Test/coverlet.runsettings --logger "trx;LogFileName=TestResults.xml"
+        Out-File -InputObject "TEST_EXIT_CODE=$LASTEXITCODE" -FilePath $env:GITHUB_ENV -Append -Encoding UTF8 
         mv Test/TestResults/*/coverage.info Test/TestResults
-
-    - name: Pack
-      run: dotnet pack ${{ env.ProjectName }} --no-build --configuration Release --verbosity normal
-
-    - name: Upload package
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.ProjectName }}.nupkg
-        path: ${{ env.ProjectName }}/bin/Release/*.*nupkg
+        exit 0
 
     - name: Upload test report
       run: testspace Test/TestResults/TestResults.xml
@@ -50,3 +43,15 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: Test/TestResults/coverage.info
+
+    - name: Stop if tests failed
+      run: exit $env:TEST_EXIT_CODE
+
+    - name: Pack
+      run: dotnet pack ${{ env.ProjectName }} --no-build --configuration Release --verbosity normal
+
+    - name: Upload package
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: ${{ env.ProjectName }}.nupkg
+        path: ${{ env.ProjectName }}/bin/Release/*.*nupkg
