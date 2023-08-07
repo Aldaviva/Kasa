@@ -51,7 +51,7 @@ internal class KasaClient: IKasaClient {
         }
     }
 
-    public bool Connected => _tcpClient.Connected && _tcpClient.Client.Connected;
+    public bool Connected => _tcpClient is { Connected: true, Client.Connected: true };
 
     public KasaClient(string hostname) {
         _tcpClient              =  new TcpClient(AddressFamily.InterNetwork);

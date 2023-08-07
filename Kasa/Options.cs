@@ -11,7 +11,7 @@ namespace Kasa;
 public class Options: INotifyPropertyChanged {
 
     private ILoggerFactory? _loggerFactory;
-    private uint            _maxAttempts    = 10; // 20 seconds, enough to cover an EP10 rebooting in 14 seconds
+    private uint?           _maxAttempts    = 10; // 20 seconds, enough to cover an EP10 rebooting in 14 seconds
     private TimeSpan        _receiveTimeout = TimeSpan.FromSeconds(2);
     private TimeSpan        _retryDelay     = TimeSpan.FromSeconds(1);
     private TimeSpan        _sendTimeout    = TimeSpan.FromSeconds(2);
@@ -40,10 +40,11 @@ public class Options: INotifyPropertyChanged {
     /// <para>The number of attempts that will be made to send a given command before giving up when exceptions are encountered.</para>
     /// <para>The default value is <c>10</c> attempts, which means 1 initial attempt and up to 9 retries on failure.</para>
     /// <para>The minimum value is <c>1</c>, and the maximum value is <see cref="uint.MaxValue"/>. If you set this property to 0, it will behave as if it is set to 1 (which means 1 attempt and 0 retries).</para>
+    /// <para>If you set this property to <see langword="null"/>, the client will retry a failing request infinitely, no matter how many times it fails.</para>
     /// <para>The client will wait <see cref="RetryDelay"/> before each retry.</para>
     /// <para>Only temporary exceptions trigger retries, such as timeouts and refused connections, but not JSON errors or <see cref="ObjectDisposedException"/>, which would just fail again no matter how many times they are retried.</para>
     /// </summary>
-    public uint MaxAttempts {
+    public uint? MaxAttempts {
         get => _maxAttempts;
         set {
             if (value != _maxAttempts) {
@@ -56,7 +57,7 @@ public class Options: INotifyPropertyChanged {
     /// <summary>
     /// <para>The amount of time to wait before retrying to send each command after a failure.</para>
     /// <para>The default value is <c>1</c> second.</para>
-    /// <para>The minimum value is <see cref="TimeSpan.Zero"/>, and the maximum value is <c>TimeSpan.FromMilliseconds(int.MaxValue)</c>, which is about 24 days and 21 hours. Values outside the valid range will be clipped to fit in the range.</para>
+    /// <para>The minimum value is <see cref="TimeSpan.Zero"/>, and the maximum value is <c>TimeSpan.FromMilliseconds(int.MaxValue)</c>, (or <c>TimeSpan.FromMilliseconds(uint.MaxValue-1)</c> starting in .NET 6). Values outside the valid range will be clipped to fit in the range.</para>
     /// </summary>
     public TimeSpan RetryDelay {
         get => _retryDelay;

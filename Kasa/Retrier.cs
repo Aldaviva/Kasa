@@ -9,14 +9,14 @@ namespace Kasa;
 /// </summary>
 internal static class Retrier {
 
-    private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+    private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(Environment.Version.Major >= 6 ? uint.MaxValue - 1 : int.MaxValue);
 
     /// <summary>
     /// Run the given <paramref name="action"/> at most <paramref name="maxAttempts"/> times, until it returns without throwing an exception.
     /// </summary>
     /// <param name="action">An action which is prone to sometimes throw exceptions.</param>
-    /// <param name="maxAttempts">The total number of times <paramref name="action"/> is allowed to run in this invocation. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. This is equal to 1 initial attempt plus <c>maxAttempts-1</c> retries if it throws an exception.</param>
-    /// <param name="delay">How long to wait between attempts. Defaults to no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0 ms, int.MaxValue ms]</c> will be clipped.</param>
+    /// <param name="maxAttempts">The total number of times <paramref name="action"/> is allowed to run in this invocation, equal <c>1</c> initial attempt plus up to <c>maxAttempts - 1</c> retries if it throws an exception. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. For infinite retries, pass <see langword="null"/>.</param>
+    /// <param name="delay">How long to wait between attempts. Defaults to <see langword="null"/>, which means no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0, int.MaxValue]</c> ms will be clipped (<c>[0, uint.MaxValue-1]</c> ms starting in .NET 6).</param>
     /// <param name="isRetryAllowed">Allows certain exceptions that indicate permanent failures to not trigger retries. For example, <see cref="ArgumentOutOfRangeException"/> will usually be thrown every time you call a function with the same arguments, so there is no reason to retry, and <paramref name="isRetryAllowed"/> could return <c>false</c> in that case. Defaults to retrying on every exception besides <see cref="OutOfMemoryException"/>.</param>
     /// <param name="beforeRetry">Action to run between attempts, possibly to clean up some state before the next retry. For example, you may want to disconnect a failed connection before reconnecting. Defaults to no action.</param>
     /// <param name="cancellationToken">Allows you to cancel the delay between attempts.</param>
@@ -50,8 +50,8 @@ internal static class Retrier {
     /// Run the given <paramref name="func"/> at most <paramref name="maxAttempts"/> times, until it returns without throwing an exception.
     /// </summary>
     /// <param name="func">An action which is prone to sometimes throw exceptions.</param>
-    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. This is equal to 1 initial attempt plus <c>maxAttempts-1</c> retries if it throws an exception.</param>
-    /// <param name="delay">How long to wait between attempts. Defaults to no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0 ms, int.MaxValue ms]</c> will be clipped.</param>
+    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation, equal <c>1</c> initial attempt plus up to <c>maxAttempts - 1</c> retries if it throws an exception. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. For infinite retries, pass <see langword="null"/>.</param>
+    /// <param name="delay">How long to wait between attempts. Defaults to <see langword="null"/>, which means no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0, int.MaxValue]</c> ms will be clipped (<c>[0, uint.MaxValue-1]</c> ms starting in .NET 6).</param>
     /// <param name="isRetryAllowed">Allows certain exceptions that indicate permanent failures to not trigger retries. For example, <see cref="ArgumentOutOfRangeException"/> will usually be thrown every time you call a function with the same arguments, so there is no reason to retry, and <paramref name="isRetryAllowed"/> could return <c>false</c> in that case. Defaults to retrying on every exception besides <see cref="OutOfMemoryException"/>.</param>
     /// <param name="beforeRetry">Action to run between attempts, possibly to clean up some state before the next retry. For example, you may want to disconnect a failed connection before reconnecting. Defaults to no action.</param>
     /// <param name="cancellationToken">Allows you to cancel the delay between attempts.</param>
@@ -83,8 +83,8 @@ internal static class Retrier {
     /// Run the given <paramref name="func"/> at most <paramref name="maxAttempts"/> times, until it returns without throwing an exception.
     /// </summary>
     /// <param name="func">An action which is prone to sometimes throw exceptions.</param>
-    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. This is equal to 1 initial attempt plus <c>maxAttempts-1</c> retries if it throws an exception.</param>
-    /// <param name="delay">How long to wait between attempts. Defaults to no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0 ms, int.MaxValue ms]</c> will be clipped.</param>
+    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation, equal <c>1</c> initial attempt plus up to <c>maxAttempts - 1</c> retries if it throws an exception. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. For infinite retries, pass <see langword="null"/>.</param>
+    /// <param name="delay">How long to wait between attempts. Defaults to <see langword="null"/>, which means no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0, int.MaxValue]</c> ms will be clipped (<c>[0, uint.MaxValue-1]</c> ms starting in .NET 6).</param>
     /// <param name="isRetryAllowed">Allows certain exceptions that indicate permanent failures to not trigger retries. For example, <see cref="ArgumentOutOfRangeException"/> will usually be thrown every time you call a function with the same arguments, so there is no reason to retry, and <paramref name="isRetryAllowed"/> could return <c>false</c> in that case. Defaults to retrying on every exception besides <see cref="OutOfMemoryException"/>.</param>
     /// <param name="beforeRetry">Action to run between attempts, possibly to clean up some state before the next retry. For example, you may want to disconnect a failed connection before reconnecting. Defaults to no action.</param>
     /// <param name="cancellationToken">Allows you to cancel the delay between attempts.</param>
@@ -117,8 +117,8 @@ internal static class Retrier {
     /// Run the given <paramref name="func"/> at most <paramref name="maxAttempts"/> times, until it returns without throwing an exception.
     /// </summary>
     /// <param name="func">An action which is prone to sometimes throw exceptions.</param>
-    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. This is equal to 1 initial attempt plus <c>maxAttempts-1</c> retries if it throws an exception.</param>
-    /// <param name="delay">How long to wait between attempts. Defaults to no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0 ms, int.MaxValue ms]</c> will be clipped.</param>
+    /// <param name="maxAttempts">The total number of times <paramref name="func"/> is allowed to run in this invocation, equal <c>1</c> initial attempt plus up to <c>maxAttempts - 1</c> retries if it throws an exception. Must be at least 1, if you pass 0 it will clip to 1. Defaults to 2. For infinite retries, pass <see langword="null"/>.</param>
+    /// <param name="delay">How long to wait between attempts. Defaults to <see langword="null"/>, which means no delay. This is a function of how many attempts have already failed (starting from <c>1</c>), to allow for strategies such as exponential back-off. Values outside the range <c>[0, int.MaxValue]</c> ms will be clipped (<c>[0, uint.MaxValue-1]</c> ms starting in .NET 6).</param>
     /// <param name="isRetryAllowed">Allows certain exceptions that indicate permanent failures to not trigger retries. For example, <see cref="ArgumentOutOfRangeException"/> will usually be thrown every time you call a function with the same arguments, so there is no reason to retry, and <paramref name="isRetryAllowed"/> could return <c>false</c> in that case. Defaults to retrying on every exception besides <see cref="OutOfMemoryException"/>.</param>
     /// <param name="beforeRetry">Action to run between attempts, possibly to clean up some state before the next retry. For example, you may want to disconnect a failed connection before reconnecting. Defaults to no action.</param>
     /// <param name="cancellationToken">Allows you to cancel the delay between attempts.</param>
