@@ -1,5 +1,4 @@
-﻿using FluentAssertions;
-using Kasa;
+﻿using Kasa;
 
 namespace Test;
 

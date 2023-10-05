@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace Kasa;
+﻿namespace Kasa;
 
 internal interface IKasaClient: IDisposable {
 

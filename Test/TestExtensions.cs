@@ -1,6 +1,4 @@
-﻿using FakeItEasy;
-
-namespace Test;
+﻿namespace Test;
 
 public static class TestExtensions {
 

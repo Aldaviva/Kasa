@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Net.NetworkInformation;
-using FluentAssertions;
 using Kasa;
 using Kasa.Marshal;
 using Newtonsoft.Json;

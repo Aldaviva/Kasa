@@ -1,5 +1,4 @@
-﻿using System;
-using Kasa.Marshal;
+﻿using Kasa.Marshal;
 using Newtonsoft.Json;
 
 namespace Kasa;

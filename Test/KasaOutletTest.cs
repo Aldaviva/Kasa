@@ -1,6 +1,4 @@
-﻿using FakeItEasy;
-using FluentAssertions;
-using Kasa;
+﻿using Kasa;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

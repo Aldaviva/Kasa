@@ -1,5 +1,4 @@
-﻿using FakeItEasy;
-using Kasa;
+﻿using Kasa;
 
 namespace Test;
 

@@ -1,5 +1,4 @@
-﻿using FluentAssertions;
-using Kasa;
+﻿using Kasa;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

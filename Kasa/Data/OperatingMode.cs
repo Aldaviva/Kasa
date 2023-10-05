@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Kasa;
+﻿namespace Kasa;
 
 /// <summary>
 /// How the Kasa device has been configured to run. This corresponds to what you've selected in the Kasa mobile app.

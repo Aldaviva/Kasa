@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Kasa;
+﻿namespace Kasa;
 
 /// <summary>
 /// Run a function with retries if it throws an exception.

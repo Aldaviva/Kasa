@@ -1,6 +1,4 @@
-﻿using FakeItEasy;
-using FluentAssertions;
-using Kasa;
+﻿using Kasa;
 using Newtonsoft.Json.Linq;
 using Timer = Kasa.Timer;
 

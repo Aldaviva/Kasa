@@ -8,7 +8,7 @@ using TimezoneGenerator.Data;
  *  2. Extract the APK
  *      - Using JADX (https://github.com/skylot/jadx/releases/latest): open the APK, and JSON files are in the Resources directory
  *      - Using Apktool (https://github.com/iBotPeaches/Apktool/releases/latest): `java -jar apktool.jar decode com.tplink.kasa_android_*.apk -o decompiled`, and JSON files are in the decompiled/assets directory
- *  3. Copy the two JSON files (timezone_*.json) into the KasaAppAssets directory inside this project, or wherever this project's EXE is saved
+ *  3. Copy the two JSON files (timezone_id.json and timezone_fwindex.json) into the KasaAppAssets directory inside this project, or wherever this project's EXE is saved
  *  4. Compile and run this program
  *  5. Copy the console output to Kasa/Data/TimeZones.cs
  */
@@ -53,10 +53,10 @@ static string FixKasaIanaId(string kasaIanaId) => kasaIanaId switch {
     "Asia/Kashgar"      => "Asia/Dhaka",         // backward, outdated, and some people who live here actually use Asia/Shanghai instead
     "Asia/Urumqi"       => "Asia/Dhaka",         // backward, outdated, and some people who live here actually use Asia/Shanghai instead
     "Atlantic/Reykjavi" => "Atlantic/Reykjavik", // misspelled in Kasa app, did someone type that whole 632-line JSON file manually instead of just generating it automatically?
-    "CET"               => "Europe/Paris",       // Windows doesn't have this abbreviated IANA IDs, but it does have a city that follows the same rules
-    "MET"               => "Europe/Paris",       // Windows doesn't have this abbreviated IANA IDs, but it does have a city that follows the same rules
-    "EET"               => "Europe/Sofia",       // Windows doesn't have this abbreviated IANA IDs, but it does have a city that follows the same rules
-    "WET"               => "Europe/Lisbon",      // Windows doesn't have this abbreviated IANA IDs, but it does have a city that follows the same rules
+    "CET"               => "Europe/Paris",       // Windows doesn't have this abbreviated IANA ID, but it does have a city that follows the same rules
+    "MET"               => "Europe/Paris",       // Windows doesn't have this abbreviated IANA ID, but it does have a city that follows the same rules
+    "EET"               => "Europe/Sofia",       // Windows doesn't have this abbreviated IANA ID, but it does have a city that follows the same rules
+    "WET"               => "Europe/Lisbon",      // Windows doesn't have this abbreviated IANA ID, but it does have a city that follows the same rules
     _                   => kasaIanaId
 };
 

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace Kasa;
+﻿namespace Kasa;
 
 /// <summary>
 /// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
