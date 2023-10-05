@@ -18,9 +18,6 @@ namespace Kasa;
 
 internal class KasaClient: IKasaClient {
 
-    private static readonly SemaphoreSlim TcpMutex = new(1);
-    private static readonly Encoding      Encoding = new UTF8Encoding(false);
-
     internal static readonly JsonSerializerSettings JsonSettings = new() {
         ContractResolver = new DefaultContractResolver { NamingStrategy = new SnakeCaseNamingStrategy() },
         Converters = new JsonConverter[] {
@@ -31,15 +28,17 @@ internal class KasaClient: IKasaClient {
         }
     };
 
+    private static readonly  Encoding       Encoding       = new UTF8Encoding(false);
     internal static readonly JsonSerializer JsonSerializer = JsonSerializer.Create(JsonSettings);
 
-    private TcpClient           _tcpClient;
-    private Options             _options = new();
-    private ILogger<KasaClient> _logger  = new NullLogger<KasaClient>();
-    private ulong               _requestId;
-    private bool                _disposed;
+    private readonly SemaphoreSlim _tcpMutex = new(1);
 
-    internal ushort Port = 9999;
+    private  TcpClient           _tcpClient;
+    private  Options             _options = new();
+    private  ILogger<KasaClient> _logger  = new NullLogger<KasaClient>();
+    private  ulong               _requestId;
+    private  bool                _disposed;
+    internal ushort              Port = 9999;
 
     public string Hostname { get; }
 
@@ -77,7 +76,7 @@ internal class KasaClient: IKasaClient {
     /// <inheritDoc />
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
     public async Task Connect() {
-        await TcpMutex.WaitAsync().ConfigureAwait(false);
+        await _tcpMutex.WaitAsync().ConfigureAwait(false);
         try {
             if (_tcpClient.Connected) {
                 return;
@@ -95,14 +94,14 @@ internal class KasaClient: IKasaClient {
         } catch (SocketException e) {
             throw new NetworkException("The TCP socket failed to connect", Hostname, e);
         } finally {
-            TcpMutex.Release();
+            _tcpMutex.Release();
         }
     }
 
     /// <inheritdoc />
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
     public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
-        await TcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
+        await _tcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
         try {
             Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters);
 
@@ -114,7 +113,7 @@ internal class KasaClient: IKasaClient {
         } catch (IOException e) {
             throw new NetworkException("The TCP server did not supply enough bytes", Hostname, e);
         } finally {
-            TcpMutex.Release();
+            _tcpMutex.Release();
         }
     }
 
@@ -145,9 +144,9 @@ internal class KasaClient: IKasaClient {
          */
 
         headerBuffer = new byte[headerBuffer.Length];
-        if (headerBuffer.Length != await tcpStream.ReadAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false)) {
-            throw new IOException(
-                $"Failed to read {headerBuffer.Length}-byte length header, actually read {await tcpStream.ReadAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false)} bytes");
+        int headerLengthReceived = await tcpStream.ReadAsync(headerBuffer, 0, headerBuffer.Length, CancellationToken.None).ConfigureAwait(false);
+        if (headerBuffer.Length != headerLengthReceived) {
+            throw new IOException($"Failed to read {headerBuffer.Length}-byte length header, actually read {headerLengthReceived} bytes");
         }
 
         int expectedPayloadLength = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headerBuffer, 0));

@@ -1,8 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using FakeItEasy;
-using FluentAssertions;
 using Kasa;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -279,6 +277,38 @@ public class KasaClientTest {
         KasaClient.IsRetryAllowed(new IOException(null)).Should().BeTrue();
         KasaClient.IsRetryAllowed(new FeatureUnavailable("method", Feature.EnergyMeter, "host")).Should().BeFalse();
         KasaClient.IsRetryAllowed(new ResponseParsingException("method", "<invalid json>", typeof(JObject), "host", new JsonReaderException())).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// <see href="https://github.com/Aldaviva/Kasa/issues/15"/>
+    /// </summary>
+    [Fact]
+    public async Task MultipleClientInstanceLiveness() {
+        TestableKasaClient client1 = new("0.0.0.0");
+        TestableKasaClient client2 = new("0.0.0.0");
+
+        Stream stream1 = await client1.GetNetworkStream();
+        Stream stream2 = await client2.GetNetworkStream();
+
+        SemaphoreSlim blocker1 = new(1);
+        A.CallTo(() => stream1.WriteAsync(A<byte[]>._, A<int>._, A<int>._, A<CancellationToken>._)).Invokes(() => blocker1.WaitAsync());
+
+        A.CallTo(() => stream2.ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+            Array.Copy(new byte[] { 0x00, 0x00, 0x00, 0x29 }, 0, destination, offset, length);
+            return Task.FromResult(length);
+        });
+        byte[] responseAfterHeader = Convert.FromBase64String("0PKB+Iv/mvfV75S2xaDUi+eC5rnWsNb0zrWX8oDyrc6hxaCCuIj1iPU=");
+        A.CallTo(() => stream2.ReadAsync(A<byte[]>._, 0, 0x29, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+            Array.Copy(responseAfterHeader, 0, destination, offset, length);
+            return Task.FromResult(length);
+        });
+
+        ManualResetEventSlim finished2 = new();
+
+        client1.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
+        client2.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 }).ContinueWith(task => finished2.Set(), TaskContinuationOptions.OnlyOnRanToCompletion);
+
+        finished2.Wait(2000).Should().BeTrue();
     }
 
 }
