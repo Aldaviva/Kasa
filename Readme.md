@@ -5,7 +5,7 @@ Kasa
 
 *Control TP-Link Kasa smart outlets/plugs*
 
-![Kasa EP10](.github/images/readme-header.jpg)
+![Kasa EP10](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/readme-header.jpg)
 
 <!-- MarkdownTOC autolink="true" bracket="round" autoanchor="false" levels="1,2,3" bullets="1.,-,-,-" -->
 
@@ -44,6 +44,7 @@ if (!await kasa.System.IsOutletOn()) {
         - [EP10](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-plug-mini-ep10)
         - [KP125](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-plug-slim-energy-monitoring-kp125)
     - Other similar devices may also work if they have the same API, such as the HS103, HS105, KP100, KP115, or EP25
+    - See [Supporting additional devices](#supporting-additional-devices) if your device is not supported
 - Any .NET runtime that supports [.NET Standard 2.0 or later](https://docs.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0#net-standard-versions):
     - [.NET 5.0 or later](https://dotnet.microsoft.com/en-us/download/dotnet)
     - [.NET Core 2.0 or later](https://dotnet.microsoft.com/en-us/download/dotnet)
@@ -564,8 +565,8 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 
 |Image|Name|Outlets|Weatherproofing|Form factor|Cost|
 |-|-|-:|-|-|-:|
-|<img src="https://images.prismic.io/kasasmart/a96da5fd-fc52-487d-ac6f-771f38622638_EP40_US_1.0+Set-up-Images-%E5%8D%95%E5%8F%AA-%E5%88%97%E8%A1%A8%E9%A1%B5.png?auto=compress,format&rect=0,0,1000,1000&w=520&h=520" width="65" alt="EP40"/>|[**EP40**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-outdoor-plug)|2|Outdoor|Dongle|27 USD|
-|<img src="https://images.prismic.io/kasasmart/9f880cc19580fe350c8623e1a9e82efe246e8996_kp303.png?auto=compress,format" width="65" alt="KP303"/>|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|33 USD|
+|<img src="https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/ep40.jpg" width="65" alt="EP40"/>|[**EP40**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-outdoor-plug)|2|Outdoor|Dongle|22 USD|
+|<img src="https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png" width="65" alt="KP303"/>|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|27 USD|
 
 ## References
 - [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*

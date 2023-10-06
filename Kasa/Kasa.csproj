@@ -18,6 +18,8 @@
         <PackageProjectUrl>https://github.com/Aldaviva/Kasa</PackageProjectUrl>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageIcon>icon.png</PackageIcon>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <PackageReadmeFile>Readme.md</PackageReadmeFile>
 
         <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
@@ -48,6 +50,7 @@
 
     <ItemGroup>
         <None Include="icon.png" Pack="true" PackagePath="\" />
+        <None Include="..\Readme.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(Configuration)' == 'Release'">
