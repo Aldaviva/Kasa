@@ -565,7 +565,6 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 
 |Image|Name|Outlets|Weatherproofing|Form factor|Cost|
 |-|-|-:|-|-|-:|
-|![EP40](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/ep40.jpg)|[**EP40**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-outdoor-plug)|2|Outdoor|Dongle|26 USD|
 |![KP303](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png)|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|30 USD|
 
 ## References
