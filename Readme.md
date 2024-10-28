@@ -565,7 +565,8 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 
 |Image|Name|Outlets|Weatherproofing|Form factor|Cost|
 |-|-|-:|-|-|-:|
-|![KP303](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png)|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|30 USD|
+|![KP303](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png)|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|$23 USD|
+|![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|$43 USD|
 
 ## References
 - [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*

@@ -9,7 +9,7 @@
         <Description>Control TP-Link Kasa smart outlets/plugs</Description>
         <Authors>Ben Hutchison</Authors>
         <Company>Ben Hutchison</Company>
-        <Copyright>© 2023 Ben Hutchison</Copyright>
+        <Copyright>© 2024 Ben Hutchison</Copyright>
         <RepositoryUrl>https://github.com/Aldaviva/Kasa.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
