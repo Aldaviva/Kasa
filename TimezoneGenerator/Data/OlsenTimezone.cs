@@ -1,4 +1,4 @@
-﻿namespace TimezoneGenerator.Data;
+namespace TimezoneGenerator.Data;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedAutoPropertyAccessor.Global

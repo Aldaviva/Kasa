@@ -1,13 +1,13 @@
-﻿using System.ComponentModel;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using Kasa.Marshal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using System.ComponentModel;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Kasa;
 
@@ -15,12 +15,12 @@ internal class KasaClient: IKasaClient {
 
     internal static readonly JsonSerializerSettings JsonSettings = new() {
         ContractResolver = new DefaultContractResolver { NamingStrategy = new SnakeCaseNamingStrategy() },
-        Converters = new JsonConverter[] {
+        Converters = [
             new MacAddressConverter(),
             new OperatingModeConverter(),
             new FeatureConverter(),
             new DaysOfWeekConverter()
-        }
+        ]
     };
 
     private static readonly  Encoding       Encoding       = new UTF8Encoding(false);
@@ -95,10 +95,10 @@ internal class KasaClient: IKasaClient {
 
     /// <inheritdoc />
     // ExceptionAdjustment: M:System.Threading.SemaphoreSlim.Release -T:System.Threading.SemaphoreFullException
-    public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null) {
+    public async Task<T> Send<T>(CommandFamily commandFamily, string methodName, object? parameters = null, object? extraParameters = null) {
         await _tcpMutex.WaitAsync().ConfigureAwait(false); //only one TCP write operation may occur in parallel, which is a requirement of TcpClient
         try {
-            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters);
+            Task<T> Attempt() => SendWithoutRetry<T>(commandFamily, methodName, parameters, extraParameters);
 
 #pragma warning disable Ex0100 // Member may throw undocumented exception
             return await Retrier.InvokeWithRetry(Attempt, Options.MaxAttempts, _ => Options.RetryDelay, IsRetryAllowed).ConfigureAwait(false);
@@ -119,15 +119,20 @@ internal class KasaClient: IKasaClient {
     // ExceptionAdjustment: M:System.Threading.Interlocked.Increment(System.Int64@) -T:System.NullReferenceException
     // ExceptionAdjustment: M:System.IO.Stream.WriteAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
     // ExceptionAdjustment: M:System.IO.Stream.ReadAsync(System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken) -T:System.NotSupportedException
-    private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters) {
+    private async Task<T> SendWithoutRetry<T>(CommandFamily commandFamily, string methodName, object? parameters, object? extraParameters) {
         /*
          * Send request
          */
 
         Stream tcpStream = await GetNetworkStream().ConfigureAwait(false);
         ulong  requestId = _requestId++;
+
         JObject request = new(new JProperty(commandFamily.ToJsonString(), new JObject(
             new JProperty(methodName, parameters is null ? null : JObject.FromObject(parameters, JsonSerializer)))));
+        if (extraParameters != null) {
+            request.Add(new JProperty("context", JObject.FromObject(extraParameters, JsonSerializer)));
+        }
+
         byte[] requestBytes = Serialize(request, requestId);
         byte[] headerBuffer = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(requestBytes.Length));
 

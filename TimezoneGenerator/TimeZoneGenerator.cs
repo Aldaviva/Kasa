@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TimezoneGenerator.Data;
 
 /*
  * These two JSON files come from the Kasa Smart Android app. To update them:
- *  1. Download APK from https://www.apkmirror.com/apk/tp-link-corporation-limited/kasa-for-mobile/
- *  2. Extract the APK
+ *  1. Download APKM from https://www.apkmirror.com/apk/tp-link-corporation-limited/kasa-for-mobile/
+ *  2. Extract the APKM
+ *      - Using any ZIP viewer: open the APKM, then base.apk, and the JSON files are in the assets directory
  *      - Using JADX (https://github.com/skylot/jadx/releases/latest): open the APK, and JSON files are in the Resources directory
  *      - Using Apktool (https://github.com/iBotPeaches/Apktool/releases/latest): `java -jar apktool.jar decode com.tplink.kasa_android_*.apk -o decompiled`, and JSON files are in the decompiled/assets directory
  *  3. Copy the two JSON files (timezone_id.json and timezone_fwindex.json) into the KasaAppAssets directory inside this project, or wherever this project's EXE is saved

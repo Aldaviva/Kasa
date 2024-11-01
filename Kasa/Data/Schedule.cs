@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 // ReSharper disable PropertyCanBeMadeInitOnly.Local - not available in .NET Standard 2.0
 // ReSharper disable PropertyCanBeMadeInitOnly.Global - not available in .NET Standard 2.0

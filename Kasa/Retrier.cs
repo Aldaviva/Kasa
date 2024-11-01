@@ -1,4 +1,4 @@
-﻿namespace Kasa;
+namespace Kasa;
 
 /// <summary>
 /// Run a function with retries if it throws an exception.

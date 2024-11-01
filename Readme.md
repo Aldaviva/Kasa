@@ -23,7 +23,7 @@ Kasa
     - [Energy Meter](#energy-meter)
 1. [Exceptions](#exceptions)
 1. [Supporting additional devices](#supporting-additional-devices)
-1. [References](#references)
+1. [Thanks](#thanks)
 
 <!-- /MarkdownTOC -->
 
@@ -42,8 +42,9 @@ if (!await kasa.System.IsOutletOn()) {
 - A [Kasa smart outlet](https://www.kasasmart.com/us/products/smart-plugs)
     - Verified devices:
         - [EP10](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-plug-mini-ep10)
+        - [EP40](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-outdoor-plug)
         - [KP125](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-plug-slim-energy-monitoring-kp125)
-    - Other similar devices may also work if they have the same API, such as the HS103, HS105, KP100, KP115, or EP25
+    - Other similar devices may also work if they have the same API, such as the HS103, HS105, KP100, KP115, EP25, or KP400
     - See [Supporting additional devices](#supporting-additional-devices) if your device is not supported
 - Any .NET runtime that supports [.NET Standard 2.0 or later](https://docs.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0#net-standard-versions):
     - [.NET 5.0 or later](https://dotnet.microsoft.com/en-us/download/dotnet)
@@ -68,10 +69,17 @@ You can install this library into your project from [NuGet Gallery](https://www.
         nmap --open -pT:9999 192.168.1.0/24
         ```
     - You can also use its FQDN if you assigned one using a DNS A record.
-1. Construct a new **`KasaOutlet`** instance in your project, passing the device's hostname as a constructor parameter.
-    ```cs
-    using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100");
-    ```
+1. Construct a new instance of a class below, passing the device's hostname as the `hostname` constructor parameter.
+    - If your device has exactly one outlet (like the EP10), the class to construct is **`KasaOutlet`**.
+        ```cs
+        using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100");
+        ```
+    - If your device has multiple outlets (like the EP40), the class to construct is **`KasaMultiOutlet`**.
+        ```cs
+        using IKasaMultiOutlet kasa = new KasaMultiOutlet(hostname: "192.168.1.100");
+        ```
+        Commands that are related to one specific outlet, rather than the overall device, require an outlet identifier as the first argument, which is an integer index that starts at 0 for the first outlet, and maps to the increasing 1-indexed numbers printed on the hardware (minus 1). For example, pass `0` to control "plug 1" on an EP40, and pass `1` to control "plug 2."
+
 
 `IKasaOutlet` instances can be reused to send multiple commands over the lifetime of your application. You can add one to your dependency injection context and retain it for as long as you like. Remember to `Dispose()` it when you're done using it, so that it can tear down the TCP socket.
 
@@ -115,8 +123,8 @@ builder.Services.AddSingleton<IKasaOutlet>(services => new KasaOutlet("192.168.1
 }));
 ```
 
-###### appsettings.json
-```json
+```js
+// appsettings.json
 {
   "Logging": {
     "LogLevel": {
@@ -136,8 +144,8 @@ Host.CreateDefaultBuilder(args).ConfigureServices(services => {
 });
 ```
 
-###### appsettings.json
-```json
+```js
+// appsettings.json
 {
   "Logging": {
     "LogLevel": {
@@ -149,8 +157,8 @@ Host.CreateDefaultBuilder(args).ConfigureServices(services => {
 ```
 
 ##### Manual
-```cs
-ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
+```c
+sILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .AddFilter("Kasa", LogLevel.Trace)
     .AddConsole());
 
@@ -190,13 +198,26 @@ Commands that get or set system properties, like status, name, and whether the o
 #### IsOutletOn
 Get whether the outlet on the device is energized and can supply power to any connected electrical consumers or not.
 
-This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.
+This is unrelated to whether the entire Kasa device is booted up and running. If you can connect to it, it's running.
 ```cs
 bool isOn = await kasa.System.IsOutletOn();
-Console.WriteLine($"Is on: {isOn}");
+Console.WriteLine($"Outlet is {(isOn ? "on" : "off")}");
 ```
 ```text
-Is on: true
+Outlet is on
+```
+
+For devices with multiple outlets like the EP40, construct a new `KasaMultiOutlet` instead of `KasaOutlet`, and pass the 0-indexed outlet ID to `IsOutletOn` that specifies which outlet to query.
+```cs
+using IKasaMultiOutlet ep40 = new KasaMultiOutlet("192.168.1.100");
+for (int outletId = 0; outletId < await ep40.System.CountOutlets(); outletId++) {
+    bool isOn = await ep40.System.IsOutletOn(outletId);
+    Console.WriteLine($"Outlet {outletId} is {(isOn ? "on" : "off")}");
+}
+```
+```text
+Outlet 0 is on
+Outlet 1 is off
 ```
 
 #### SetOutletOn
@@ -213,6 +234,12 @@ This call is unrelated to turning the entire Kasa device on or off. To reboot th
 await kasa.System.SetOutletOn(true);
 ```
 
+For devices with multiple outlets like the EP40, construct a new `KasaMultiOutlet` instead of `KasaOutlet`, and pass the 0-indexed outlet ID to `SetOutletOn` that specifies which outlet to query.
+```cs
+using IKasaMultiOutlet ep40 = new KasaMultiOutlet("192.168.1.100");
+await ep40.System.SetOutletOn(true, 0);
+```
+
 #### GetName
 The name or alias of the device that you chose during setup.
 ```cs
@@ -223,10 +250,31 @@ Console.WriteLine($"Name: {name}");
 Name: Washing Machine
 ```
 
+For devices with multiple outlets like the EP40, each individual outlet also has its own name, in addition to the device's overall name. You can fetch the individual outlet name by passing the 0-indexed outlet ID to `GetName`.
+```cs
+await kasa.System.GetName(0);
+```
+
 #### SetName
 Change the alias of this device. This will appear in the Kasa mobile app.
 ```cs
 await kasa.System.SetName("My Outlet");
+```
+
+For devices with multiple outlets like the EP40, each individual outlet also has its own name, in addition to the device's overall name. You can change the individual outlet name by passing the 0-indexed outlet ID to `SetName`.
+```cs
+await kasa.System.SetName("Outlet 1", 0);
+```
+
+#### CountOutlets
+Some devices have multiple outlets, like the EP40. This method returns the number of outlets on the device. For `IKasaMultiOutlet` instances, this will return a value greater than or equal to 2. For `IKasaOutlet` instances, this will always return 1.
+
+```cs
+int outletCount = await kasa.System.CountOutlets();
+Console.WriteLine("Device has {outletCount} outlets");
+```
+```text
+Device has 2 outlets.
 ```
 
 #### GetInfo
@@ -372,6 +420,8 @@ if(await outlet.Timer.Get() is { } timer){
 Outlet will turn on in 9.3 seconds.
 ```
 
+For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
+
 #### Start
 Save a new, enabled countdown timer to the device.
 
@@ -387,6 +437,8 @@ Console.WriteLine($"Outlet will turn {(timer.SetOutletOnWhenComplete ? "on" : "o
 Outlet will turn on in 1,800.0 seconds.
 ```
 
+For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
+
 #### Clear
 Delete any existing timer rule from the device, cancelling its countdown.
 
@@ -397,6 +449,8 @@ Idempotent: this will succeed even if there are no timers to delete.
 ```cs
 await outlet.Timers.Clear();
 ```
+
+For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
 
 ### Schedule
 Commands that deal with schedules.
@@ -568,7 +622,7 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 |![KP303](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png)|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|$23 USD|
 |![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|$43 USD|
 
-## References
+## Thanks
 - [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*
 - [Reverse Engineering the TP-Link HS110](https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/) — *Lubomir Stroetmann and Tobias Esser*
 - [Controlling the TP-LINK HS100 Wi-Fi smart plug](https://blog.georgovassilis.com/2016/05/07/controlling-the-tp-link-hs100-wi-fi-smart-plug/) — *George Georgovassilis, Thomas Baust*
@@ -580,3 +634,4 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 - [kasasock](https://github.com/english299/Smart-Home-Without-the-Cloud/blob/main/kasaHS1xx/csharp/kasasock.cs) — *Brian English*
 - [Home Assistant](https://www.home-assistant.io/integrations/tplink)
 - [tplink-smarthome-simulator](https://github.com/plasticrake/tplink-smarthome-simulator) — *Patrick Seal*
+- EP40 hardware donation — *John M. McKeon*

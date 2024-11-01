@@ -1,20 +1,20 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Kasa;
 
 public partial class KasaOutlet {
 
     /// <inheritdoc />
-    public IKasaOutlet.IEnergyMeterCommands EnergyMeter => this;
+    public IKasaOutletBase.IEnergyMeterCommands EnergyMeter => this;
 
     /// <inheritdoc />
-    Task<PowerUsage> IKasaOutlet.IEnergyMeterCommands.GetInstantaneousPowerUsage() {
-        return _client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
+    Task<PowerUsage> IKasaOutletBase.IEnergyMeterCommands.GetInstantaneousPowerUsage() {
+        return Client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
     }
 
     /// <inheritdoc />
-    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetDailyEnergyUsage(int year, int month) {
-        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
+    async Task<IList<int>?> IKasaOutletBase.IEnergyMeterCommands.GetDailyEnergyUsage(int year, int month) {
+        JArray     response = (JArray) (await Client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
         List<int>? results  = null;
 
         if (response.Count > 0) {
@@ -31,8 +31,8 @@ public partial class KasaOutlet {
     }
 
     /// <inheritdoc />
-    async Task<IList<int>?> IKasaOutlet.IEnergyMeterCommands.GetMonthlyEnergyUsage(int year) {
-        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
+    async Task<IList<int>?> IKasaOutletBase.IEnergyMeterCommands.GetMonthlyEnergyUsage(int year) {
+        JArray     response = (JArray) (await Client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
         List<int>? results  = null;
 
         if (response.Count > 0) {
@@ -48,8 +48,8 @@ public partial class KasaOutlet {
     }
 
     /// <inheritdoc />
-    Task IKasaOutlet.IEnergyMeterCommands.DeleteHistoricalUsage() {
-        return _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
+    Task IKasaOutletBase.IEnergyMeterCommands.DeleteHistoricalUsage() {
+        return Client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
     }
 
 }

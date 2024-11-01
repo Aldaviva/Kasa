@@ -1,4 +1,4 @@
-﻿namespace Kasa;
+namespace Kasa;
 
 /// <summary>
 /// A capability of a Kasa device. These will vary by model, for example the EP10 has a timer but no energy meter, while the KP115 has both.

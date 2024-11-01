@@ -1,4 +1,6 @@
-﻿namespace Kasa;
+// ReSharper disable CommentTypo
+
+namespace Kasa;
 
 /// <summary>
 /// <para>To get a Windows <c>TimeZoneInfo</c> from a string ID like "Pacific Standard Time", call <c>TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time")</c></para>

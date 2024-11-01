@@ -1,9 +1,9 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using Kasa;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Test;
 
@@ -52,7 +52,7 @@ public class KasaClientTest {
 
     [Fact]
     public void DeserializeInvalidJson() {
-        byte[] responseBytes = { 0x00 };
+        byte[] responseBytes = [0x00];
         Action thrower       = () => _client.Deserialize<JObject>(responseBytes, 1, new JObject(), CommandFamily.System, "test");
         thrower.Should().Throw<ResponseParsingException>();
     }
@@ -88,8 +88,34 @@ public class KasaClientTest {
 
         JObject actual = await _client.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
 
-        byte[] expectedHeader  = { 0, 0, 0, 36 };
+        byte[] expectedHeader  = [0, 0, 0, 36];
         byte[] expectedPayload = Convert.FromBase64String("0PKB+Iv/mvfV75S2xaDUi+eC5rnWsNb0zrWX+J742uDQrdCt");
+        A.CallTo(() => fakeStream.WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedHeader), 0, expectedHeader.Length, A<CancellationToken>._)).MustHaveHappened().Then(
+            A.CallTo(() => fakeStream.WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedPayload), 0, expectedPayload.Length, A<CancellationToken>._)).MustHaveHappened());
+
+        actual.Should().BeEquivalentTo(JObject.Parse(@"{""err_code"":0}"));
+    }
+
+    [Fact]
+    public async Task SendWithContext() {
+        Stream fakeStream = await _client.GetNetworkStream();
+
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 4, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+            Array.Copy(new byte[] { 0, 0, 0, 45 }, 0, destination, offset, length);
+            return Task.FromResult(length);
+        });
+
+        byte[] responseAfterHeader = Convert.FromBase64String("0PKB+Iv/mvfV75S2xaDUi/mc8JHot8Sw0aXA4tijgeSW5LvYt9O2lK6e457j");
+        A.CallTo(() => fakeStream.ReadAsync(A<byte[]>._, 0, 45, A<CancellationToken>._)).ReturnsLazily((byte[] destination, int offset, int length, CancellationToken _) => {
+            Array.Copy(responseAfterHeader, 0, destination, offset, length);
+            return Task.FromResult(length);
+        });
+
+        JObject actual = await _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = 0 }, new ChildContext("800648C61B22DD1DE8AFD8858B29192022087E7200"));
+
+        byte[] expectedHeader = [0, 0, 0, 113];
+        byte[] expectedPayload =
+            Convert.FromBase64String("0PKB+Iv/mvfV75S2xaDUi/mc8JHot8Sw0aXA4tijgfKG55P21O7eo97y0LPcssaj26+Nt8zujeWM4ITbstalh73mxPzM/Mr+xoWzgsDywITA8bXwyInPi7OLvobE9s/+x/XF98X1zfq/iLqKupjFuMU=");
         A.CallTo(() => fakeStream.WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedHeader), 0, expectedHeader.Length, A<CancellationToken>._)).MustHaveHappened().Then(
             A.CallTo(() => fakeStream.WriteAsync(A<byte[]>.That.IsSameSequenceAs(expectedPayload), 0, expectedPayload.Length, A<CancellationToken>._)).MustHaveHappened());
 
@@ -263,7 +289,7 @@ public class KasaClientTest {
         }
 
         Reference<TcpClient?> tcpServerSocket = new();
-        server!.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
+        server.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
         KasaClient kasaClient = new("localhost") { Port = serverPort!.Value };
         return (server, serverPort.Value, tcpServerSocket, kasaClient);
     }
@@ -305,8 +331,8 @@ public class KasaClientTest {
 
         ManualResetEventSlim finished2 = new();
 
-        client1.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
-        client2.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 }).ContinueWith(task => finished2.Set(), TaskContinuationOptions.OnlyOnRanToCompletion);
+        _ = client1.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 });
+        _ = client2.Send<JObject>(CommandFamily.System, "set_led_off", new { off = 0 }).ContinueWith(_ => finished2.Set(), TaskContinuationOptions.OnlyOnRanToCompletion);
 
         finished2.Wait(2000).Should().BeTrue();
     }

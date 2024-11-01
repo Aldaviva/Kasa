@@ -1,4 +1,4 @@
-﻿namespace Kasa;
+namespace Kasa;
 
 internal enum CommandFamily {
 

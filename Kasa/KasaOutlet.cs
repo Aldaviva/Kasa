@@ -1,4 +1,4 @@
-﻿namespace Kasa;
+namespace Kasa;
 
 /// <summary>
 /// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
@@ -12,17 +12,20 @@
 ///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-public partial class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasaOutlet.ITimeCommands, IKasaOutlet.IEnergyMeterCommands, IKasaOutlet.ITimerCommands, IKasaOutlet.IScheduleCommands {
+public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.SingleOutlet, IKasaOutletBase.ITimeCommands, IKasaOutletBase.IEnergyMeterCommands,
+    IKasaOutletBase.ITimerCommandsSingleOutlet,
+    IKasaOutletBase.IScheduleCommandsSingleOutlet,
+    IKasaOutletBase.ICloudCommands {
 
-    private readonly IKasaClient _client;
+    internal readonly IKasaClient Client;
 
     /// <inheritdoc />
-    public string Hostname => _client.Hostname;
+    public string Hostname => Client.Hostname;
 
     /// <inheritdoc />
     public Options Options {
-        get => _client.Options;
-        set => _client.Options = value;
+        get => Client.Options;
+        set => Client.Options = value;
     }
 
     /// <summary>
@@ -36,22 +39,21 @@ public partial class KasaOutlet: IKasaOutlet, IKasaOutlet.ISystemCommands, IKasa
     public KasaOutlet(string hostname, Options? options = null): this(new KasaClient(hostname) { Options = options ?? new Options() }) { }
 
     internal KasaOutlet(IKasaClient client) {
-        _client = client;
+        Client = client;
     }
 
     /// <inheritdoc />
     public Task Connect() {
-        return _client.Connect();
+        return Client.Connect();
     }
 
     /// <summary>
     /// <para>Disconnects and disposes the TCP client.</para>
-    /// <para>Subclasses should call this base method with <c>disposing = true</c> in their overriding <c>Dispose</c> implementations.</para>
     /// </summary>
     /// <param name="disposing"><c>true</c> to dispose the TCP client, <c>false</c> if you're running in a finalizer and it's already been disposed</param>
     protected virtual void Dispose(bool disposing) {
         if (disposing) {
-            _client.Dispose();
+            Client.Dispose();
         }
     }
 

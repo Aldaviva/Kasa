@@ -1,4 +1,4 @@
-﻿using Kasa;
+using Kasa;
 using Newtonsoft.Json.Linq;
 
 namespace Test;
@@ -9,7 +9,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [InlineData(true)]
     [InlineData(false)]
     public async Task IsOutletOn(bool expected) {
-        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null)).Returns(new SystemInfo {
+        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
             IsOutletOn = expected
         });
 
@@ -23,23 +23,24 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [InlineData(false, 0)]
     public async Task TurnOutletOn(bool turnOn, int expected) {
         await Outlet.System.SetOutletOn(turnOn);
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_relay_state", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { state = expected }, "")))).MustHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_relay_state", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { state = expected }, "")), null)).MustHaveHappened();
     }
 
     [Fact]
     public async Task GetSystemInfo() {
         SystemInfo expected = new();
-        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null)).Returns(expected);
+        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(expected);
 
         SystemInfo actual = await Outlet.System.GetInfo();
         actual.Should().Be(expected);
+        actual.ToString().Should().NotBeEmpty();
     }
 
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
     public async Task IsIndicatorLightOn(bool indicatorLightDisabled, bool expected) {
-        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null)).Returns(new SystemInfo {
+        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
             IndicatorLightDisabled = indicatorLightDisabled
         });
 
@@ -53,18 +54,18 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [InlineData(false, 1)]
     public async Task TurnIndicatorLightOn(bool turnOn, int expected) {
         await Outlet.System.SetIndicatorLightOn(turnOn);
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_led_off", An<object>.That.HasProperty("off", expected))).MustHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_led_off", An<object>.That.HasProperty("off", expected), null)).MustHaveHappened();
     }
 
     [Fact]
     public async Task Reboot() {
         await Outlet.System.Reboot(TimeSpan.FromSeconds(5));
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "reboot", An<object>.That.HasProperty("delay", 5))).MustHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "reboot", An<object>.That.HasProperty("delay", 5), null)).MustHaveHappened();
     }
 
     [Fact]
     public async Task GetName() {
-        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null)).Returns(new SystemInfo {
+        A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
             Name = "SX20"
         });
 
@@ -76,7 +77,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [Fact]
     public async Task SetName() {
         await Outlet.System.SetName("abc");
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>.That.HasProperty("alias", "abc"))).MustHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>.That.HasProperty("alias", "abc"), null)).MustHaveHappened();
     }
 
     [Theory]
@@ -86,7 +87,12 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     public async Task SetNameInvalid(string name) {
         Func<Task> setName = async () => await Outlet.System.SetName(name);
         await setName.Should().ThrowAsync<ArgumentOutOfRangeException>();
-        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>._)).MustNotHaveHappened();
+        A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>._, null)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task CountOutlets() {
+        (await Outlet.System.CountOutlets()).Should().Be(1);
     }
 
 }

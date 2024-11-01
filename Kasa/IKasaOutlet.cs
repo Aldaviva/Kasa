@@ -1,4 +1,4 @@
-﻿namespace Kasa;
+namespace Kasa;
 
 /// <summary>
 /// <para>A TP-Link Kasa outlet or plug. This interface is the main entry point of the Kasa library. The corresponding implementation is <see cref="KasaOutlet"/>.</para>
@@ -12,7 +12,7 @@
 ///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-public interface IKasaOutlet: IDisposable {
+public interface IKasaOutletBase: IDisposable {
 
     /// <summary>
     /// The hostname that you specified for the client when you constructed the <see cref="KasaOutlet"/>. Can be an IP address or FQDN.
@@ -36,11 +36,6 @@ public interface IKasaOutlet: IDisposable {
     Task Connect();
 
     /// <summary>
-    /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
-    /// </summary>
-    ISystemCommands System { get; }
-
-    /// <summary>
     /// <para>Commands that deal with the outlet's internal clock that keeps track of the current date and time.</para>
     /// <para>This is unrelated to schedules and timers that control when the outlet turns or off, see <see cref="Timer"/>.</para>
     /// </summary>
@@ -54,45 +49,15 @@ public interface IKasaOutlet: IDisposable {
     IEnergyMeterCommands EnergyMeter { get; }
 
     /// <summary>
-    /// <para>Commands that deal with countdown timers.</para>
-    /// <para>Timers allow you to set the outlet to turn on or off once after a delay of configurable duration.</para>
-    /// <para>Outlets can handle at most one timer at once.</para>
-    /// <para>This is unrelated to the current time of the device's internal clock, see <see cref="Time"/>.</para>
+    /// <para>Commands that deal with the connection between the device and the TP-Link hosted servers.</para>
+    /// <para>This is referred to as Remote Control in the Kasa Smart phone app. It allows the outlet to be controlled by the phone app without your phone having to be on the same local network as the outlet.</para>
     /// </summary>
-    ITimerCommands Timer { get; }
-
-    /// <summary>
-    /// <para>Commands that deal with schedules.</para>
-    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
-    /// <para>Outlets can handle multiple schedules at once.</para>
-    /// </summary>
-    IScheduleCommands Schedule { get; }
+    ICloudCommands Cloud { get; }
 
     /// <summary>
     /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
     /// </summary>
     public interface ISystemCommands {
-
-        /// <summary>
-        /// <para>Get whether the outlet on the device can supply power to any connected electrical consumers or not.</para>
-        /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
-        /// </summary>
-        /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
-        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
-        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<bool> IsOutletOn();
-
-        /// <summary>
-        /// <para>Turn on or off the device's outlet so it can supply power to any connected electrical consumers or not.</para>
-        /// <para>You can also toggle the outlet by pressing the physical button on the device.</para>
-        /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
-        /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.</para>
-        /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="Reboot"/>.</para>
-        /// </summary>
-        /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
-        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
-        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task SetOutletOn(bool turnOn);
 
         /// <summary>
         /// <para>Get data about the device, including hardware, software, configuration, and current state.</para>
@@ -124,7 +89,7 @@ public interface IKasaOutlet: IDisposable {
         /// <para>Restart the device.</para>
         /// <para>Rebooting will interrupt power to any connected consumers for roughly 108 milliseconds.</para>
         /// <para>It takes about 8 seconds for a KP125 to completely reboot and resume responding to API requests, and about 14 seconds for an EP10.</para>
-        /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="SetOutletOn"/> to reestablish the previous state.</para>
+        /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="ISystemCommands.SingleOutlet.SetOutletOn(bool)"/> to reestablish the previous state.</para>
         /// <para>By default, this client will automatically reconnect to the outlet after it reboots, which can be tuned using the <see cref="Options.MaxAttempts"/> and <see cref="Options.RetryDelay"/> properties.</para>
         /// </summary>
         /// <param name="afterDelay">How long to wait before rebooting. If not specified, the device reboots immediately.</param>
@@ -148,6 +113,63 @@ public interface IKasaOutlet: IDisposable {
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task SetName(string name);
+
+        Task<int> CountOutlets();
+
+        public interface SingleOutlet: ISystemCommands {
+
+            /// <summary>
+            /// <para>Get whether the outlet on the device can supply power to any connected electrical consumers or not.</para>
+            /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
+            /// </summary>
+            /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
+            /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+            /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+            Task<bool> IsOutletOn();
+
+            /// <summary>
+            /// <para>Turn on or off the device's outlet so it can supply power to any connected electrical consumers or not.</para>
+            /// <para>You can also toggle the outlet by pressing the physical button on the device.</para>
+            /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
+            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.</para>
+            /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="Reboot"/>.</para>
+            /// </summary>
+            /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
+            /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+            /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+            Task SetOutletOn(bool turnOn);
+
+        }
+
+        public interface MultiOutlet: ISystemCommands {
+
+            /// <summary>
+            /// <para>Get whether the outlet on the device can supply power to any connected electrical consumers or not.</para>
+            /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
+            /// </summary>
+            /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
+            /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+            /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+            Task<bool> IsOutletOn(int outletId);
+
+            /// <summary>
+            /// <para>Turn on or off the device's outlet so it can supply power to any connected electrical consumers or not.</para>
+            /// <para>You can also toggle the outlet by pressing the physical button on the device.</para>
+            /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
+            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.</para>
+            /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="ISystemCommands.Reboot"/>.</para>
+            /// </summary>
+            /// <param name="outletId"></param>
+            /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
+            /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+            /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+            Task SetOutletOn(int outletId, bool turnOn);
+
+            Task<string> GetName(int outletId);
+
+            Task SetName(int outletId, string name);
+
+        }
 
     }
 
@@ -249,7 +271,7 @@ public interface IKasaOutlet: IDisposable {
     /// <para>Countdown timers allow you to schedule the outlet to turn on or off once after a delay of configurable duration.</para>
     /// <para>Outlets can handle at most one timer at once.</para>
     /// </summary>
-    public interface ITimerCommands {
+    public interface ITimerCommandsSingleOutlet {
 
         /// <summary>
         /// <para>Get the currently running countdown <see cref="Timer"/> rule on the device, along with its updated <see cref="Timer.RemainingDuration"/>.</para>
@@ -287,11 +309,19 @@ public interface IKasaOutlet: IDisposable {
 
     }
 
+    public interface ITimerCommandsMultiOutlet {
+
+        Task<Timer?> Get(int outletId);
+        Task<Timer> Start(int outletId, TimeSpan duration, bool setOutletOnWhenComplete);
+        Task Clear(int outletId);
+
+    }
+
     /// <summary>
     /// <para>Commands that deal with schedules.</para>
     /// <para>Schedules allow you to set the outlet to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
     /// </summary>
-    public interface IScheduleCommands {
+    public interface IScheduleCommandsSingleOutlet {
 
         /// <summary>
         /// Fetch all of the existing schedules from the outlet.
@@ -325,11 +355,11 @@ public interface IKasaOutlet: IDisposable {
         /// <summary>
         /// Remove an existing schedule from the outlet.
         /// </summary>
-        /// <param name="id">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
+        /// <param name="scheduleId">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
         /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task Delete(string id);
+        Task Delete(string scheduleId);
 
         /// <summary>
         /// Clear all existing schedules from the outlet.
@@ -339,5 +369,127 @@ public interface IKasaOutlet: IDisposable {
         Task DeleteAll();
 
     }
+
+    public interface IScheduleCommandsMultiOutlet {
+
+        /// <summary>
+        /// Fetch all of the existing schedules from the outlet.
+        /// </summary>
+        /// <returns>A enumerable of <see cref="Schedule"/> rules, or the empty enumerable if the device has no schedules on it.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task<IEnumerable<Schedule>> GetAll(int outletId);
+
+        /// <summary>
+        /// <para>Persist a schedule to the outlet.</para>
+        /// <para>To insert a new schedule, construct a new <see cref="Schedule"/> instance, leaving its <see cref="Schedule.Id"/> property <c>null</c>. After saving it with this method, the returned instance will be a copy with the <see cref="Schedule.Id"/> value populated.</para>
+        /// <para>To update an existing schedule, retrieve it using <see cref="GetAll"/>, make any changes you like, then save it with this method.</para>
+        /// </summary>
+        /// <param name="outletId"></param>
+        /// <param name="schedule">A new or existing schedule to insert or update.</param>
+        /// <returns>The persisted instance, which always has a non-null <see cref="Schedule.Id"/> value.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task<Schedule> Save(int outletId, Schedule schedule);
+
+        /// <summary>
+        /// Remove an existing schedule from the outlet.
+        /// </summary>
+        /// <param name="outletId"></param>
+        /// <param name="schedule">The existing schedule to delete.</param>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="ArgumentException">If the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="GetAll"/> or <see cref="Save"/>.</exception>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task Delete(int outletId, Schedule schedule);
+
+        /// <summary>
+        /// Remove an existing schedule from the outlet.
+        /// </summary>
+        /// <param name="outletId"></param>
+        /// <param name="scheduleId">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task Delete(int outletId, string scheduleId);
+
+        /// <summary>
+        /// Clear all existing schedules from the outlet.
+        /// </summary>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task DeleteAll(int outletId);
+
+    }
+
+    /// <summary>
+    /// <para>Commands that deal with the connection between the device and the TP-Link hosted servers.</para>
+    /// <para>This is referred to as Remote Control in the Kasa Smart phone app. It allows the outlet to be controlled by the phone app without your phone having to be on the same local network as the outlet.</para>
+    /// </summary>
+    public interface ICloudCommands {
+
+        /// <summary>
+        /// Gets the status of the connection between the outlet and the TP-Link hosted servers.
+        /// </summary>
+        /// <returns><c>true</c> if the smart outlet has been provisioned with an account on the TP-Link hosted servers and can be controlled remotely over the Internet, or <c>false</c> if it is operating standalone and can only be controlled from the LAN.</returns>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task<bool> IsConnectedToCloudAccount();
+
+        /// <summary>
+        /// <para>Logs the smart outlet out of the TP-Link hosted servers, disconnecting it so it can't be remotely controlled over the Internet, and making it so it can only be controlled on the LAN.</para>
+        /// <para>If the device was already not logged into the TP-Link servers, the <see cref="Task"/> returned by this method will still resolve successfully — it is idempotent.</para>
+        /// </summary>
+        /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
+        /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+        Task DisconnectFromCloudAccount();
+
+    }
+
+}
+
+public interface IKasaOutlet: IKasaOutletBase {
+
+    /// <summary>
+    /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
+    /// </summary>
+    ISystemCommands.SingleOutlet System { get; }
+
+    /// <summary>
+    /// <para>Commands that deal with countdown timers.</para>
+    /// <para>Timers allow you to set the outlet to turn on or off once after a delay of configurable duration.</para>
+    /// <para>Outlets can handle at most one timer at once.</para>
+    /// <para>This is unrelated to the current time of the device's internal clock, see <see cref="Time"/>.</para>
+    /// </summary>
+    ITimerCommandsSingleOutlet Timer { get; }
+
+    /// <summary>
+    /// <para>Commands that deal with schedules.</para>
+    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// <para>Outlets can handle multiple schedules at once.</para>
+    /// </summary>
+    IScheduleCommandsSingleOutlet Schedule { get; }
+
+}
+
+public interface IKasaMultiOutlet: IKasaOutletBase {
+
+    /// <inheritdoc cref="IKasaOutlet.System" />
+    ISystemCommands.MultiOutlet System { get; }
+
+    /// <summary>
+    /// <para>Commands that deal with countdown timers.</para>
+    /// <para>Timers allow you to set the outlet to turn on or off once after a delay of configurable duration.</para>
+    /// <para>Outlets can handle at most one timer at once.</para>
+    /// <para>This is unrelated to the current time of the device's internal clock, see <see cref="Time"/>.</para>
+    /// </summary>
+    ITimerCommandsMultiOutlet Timer { get; }
+
+    /// <summary>
+    /// <para>Commands that deal with schedules.</para>
+    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// <para>Outlets can handle multiple schedules at once.</para>
+    /// </summary>
+    IScheduleCommandsMultiOutlet Schedule { get; }
 
 }
