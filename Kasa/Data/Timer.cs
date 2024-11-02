@@ -30,7 +30,7 @@ public struct Timer {
     /// <summary>
     /// <para>How long the timer should wait, since it was started, before turning on or off.</para>
     /// <para>When the timer elapses and is no longer running, this value will become <see cref="TimeSpan.Zero"/>.</para>
-    /// <para>To get the duration remaining from the current time, call <see cref="IKasaOutletBase.ITimerCommandsSingleOutlet.Get"/> and check the <see cref="RemainingDuration"/> property.</para>
+    /// <para>To get the duration remaining from the current time, call <see cref="IKasaOutletBase.ITimerCommandsSingleSocket.Get"/> and check the <see cref="RemainingDuration"/> property.</para>
     /// </summary>
     [JsonProperty("delay")]
     [JsonConverter(typeof(TimeSpanConverter))]

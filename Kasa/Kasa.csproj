@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>1.1.0-beta1</Version>
+        <Version>1.1.0-beta2</Version>
         <Title>Kasa</Title>
         <PackageId>Kasa</PackageId>
         <Product>Kasa</Product>
@@ -13,7 +13,7 @@
         <RepositoryType>git</RepositoryType>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <PackageTags>tplink tp-link kasa smart-home home-automation smart electrical power plug outlet ep10 kp125 ep40</PackageTags>
+        <PackageTags>tplink tp-link kasa smart-home home-automation smart electrical ac power plug outlet socket ep10 kp125 ep40</PackageTags>
         <PackageProjectUrl>https://github.com/Aldaviva/Kasa</PackageProjectUrl>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageIcon>icon.png</PackageIcon>

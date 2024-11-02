@@ -94,7 +94,7 @@ public readonly struct SystemInfo {
     /// </summary>
     [JsonProperty("feature")] public ISet<Feature> Features { get; internal init; }
 
-    [JsonProperty("children")] internal IEnumerable<ChildOutlet>? Children { get; init; }
+    [JsonProperty("children")] internal IEnumerable<Socket>? Sockets { get; init; }
 
     /// <inheritdoc />
     public override string ToString() =>

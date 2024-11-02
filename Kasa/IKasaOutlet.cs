@@ -1,7 +1,7 @@
 namespace Kasa;
 
 /// <summary>
-/// <para>A TP-Link Kasa outlet or plug. This is a super-interface for the main entry points to this library. To create an instance, construct a new <see cref="KasaOutlet"/> if your device has exactly one outlet (like an EP10), or a new <see cref="KasaMultiOutlet"/> if your device has multiple outlets (like an EP40).</para>
+/// <para>A TP-Link Kasa outlet. This is a super-interface for the main entry points to this library. To create an instance, construct a new <see cref="KasaOutlet"/> if your device has exactly one socket (like an EP10), or a new <see cref="MultiSocketKasaOutlet"/> if your device has multiple sockets (like an EP40).</para>
 /// <para>You may optionally call <see cref="Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
@@ -89,7 +89,7 @@ public interface IKasaOutletBase: IDisposable {
         /// <para>Restart the device.</para>
         /// <para>Rebooting will interrupt power to any connected consumers for roughly 108 milliseconds.</para>
         /// <para>It takes about 8 seconds for a KP125 to completely reboot and resume responding to API requests, and about 14 seconds for an EP10.</para>
-        /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="ISingleOutlet.SetOutletOn(bool)"/> to reestablish the previous state.</para>
+        /// <para>The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call <see cref="ISingleSocket.SetSocketOn"/> to reestablish the previous state.</para>
         /// <para>By default, this client will automatically reconnect to the outlet after it reboots, which can be tuned using the <see cref="Options.MaxAttempts"/> and <see cref="Options.RetryDelay"/> properties.</para>
         /// </summary>
         /// <param name="afterDelay">How long to wait before rebooting. If not specified, the device reboots immediately.</param>
@@ -115,93 +115,109 @@ public interface IKasaOutletBase: IDisposable {
         Task SetName(string name);
 
         /// <summary>
-        /// <para>Count how many outlets this Kasa device has.</para>
-        /// <para>This only includes the main three-prong 15A AC NEMA 5-15-R sockets. It excludes all USB-A ports, such as those that appear on the KP303 or HS300 power strips, and which are not individually switched.</para>
+        /// <para>Count how many physical AC sockets this Kasa device has. This is not related to TCP socket connections.</para>
+        /// <para>This only includes the main three-prong 15A AC NEMA 5-15-R sockets. It excludes all USB-A ports, such as those that appear on the KP303 or HS300 power strips, which are not individually switched.</para>
         /// </summary>
-        /// <returns>The number of AC outlets on this device. For <see cref="KasaOutlet"/> instances, this will always return 1. For <see cref="KasaMultiOutlet"/> instances, this will always return a number greater than 1.</returns>
+        /// <returns>The number of AC sockets on this device. For <see cref="KasaOutlet"/> instances, this will always return 1. For <see cref="MultiSocketKasaOutlet"/> instances, this will always return a number greater than 1.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<int> CountOutlets();
+        Task<int> CountSockets();
 
         /// <summary>
-        /// Commands that get or set system properties, like status, name, and whether the outlet is on or off. Includes commands that apply to devices with exactly one outlet.
+        /// Commands that get or set system properties, like status, name, and whether the socket is on or off. Includes commands that apply to devices with exactly one socket.
         /// </summary>
-        public interface ISingleOutlet: ISystemCommands {
+        public interface ISingleSocket: ISystemCommands {
 
             /// <summary>
-            /// <para>Get whether the outlet on the device is energized.</para>
+            /// <para>Get whether the socket on the device is energized.</para>
             /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
             /// </summary>
-            /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
+            /// <returns><c>true</c> if the socket's internal relay is on, or <c>false</c> if it's off</returns>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-            Task<bool> IsOutletOn();
+            Task<bool> IsSocketOn();
 
             /// <summary>
-            /// <para>Energizes or deenergizes the device's outlet so it can supply power to any connected electrical consumers or not.</para>
-            /// <para>You can also toggle the outlet by pressing the physical button on the device.</para>
-            /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
-            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.</para>
+            /// <para>Energizes or deenergizes the device's socket so it can supply power to any connected electrical consumers or not.</para>
+            /// <para>You can also toggle the socket by pressing the physical button on the device.</para>
+            /// <para>This call is idempotent: if you try to turn the socket on and it's already on, the call will have no effect.</para>
+            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous socket power state when it turns on again.</para>
             /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="ISystemCommands.Reboot"/>.</para>
             /// </summary>
-            /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
+            /// <param name="turnOn"><c>true</c> to supply power to the socket, or <c>false</c> to switch it off.</param>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
+            Task SetSocketOn(bool turnOn);
+
+            /// <inheritdoc cref="IsSocketOn" />
+            [Obsolete($"This method was poorly named and has been renamed to {nameof(IsSocketOn)}", false)]
+            Task<bool> IsOutletOn();
+
+            /// <inheritdoc cref="SetSocketOn" />
+            [Obsolete($"This method was poorly named and has been renamed to {nameof(SetSocketOn)}", false)]
             Task SetOutletOn(bool turnOn);
 
         }
 
         /// <summary>
-        /// Commands that get or set system properties, like status, name, and whether the outlet is on or off. Includes commands that apply to devices with more than one outlet.
+        /// Commands that get or set system properties, like status, name, and whether a socket is on or off. Includes commands that apply to devices with more than one socket.
         /// </summary>
-        public interface IMultiOutlet: ISystemCommands {
+        public interface IMultiSocket: ISystemCommands {
 
             /// <summary>
-            /// <para>Get whether an outlet on the device is energized.</para>
+            /// <para>Get whether a socket on the device is energized.</para>
             /// <para>This is unrelated to whether the entire Kasa device is running. If you can connect to it, it's running.</para>
             /// </summary>
-            /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to query the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
-            /// <returns><c>true</c> if the outlet's internal relay is on, or <c>false</c> if it's off</returns>
-            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+            /// <param name="socketId">The index, increasing from 0, of the outlet on the device. For example, to query the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+            /// <returns><c>true</c> if the socket's internal relay is on, or <c>false</c> if it's off</returns>
+            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-            Task<bool> IsOutletOn(int outletId);
+            Task<bool> IsSocketOn(int socketId);
 
             /// <summary>
-            /// <para>Energizes or deenergizes one of the device's outlets so it can supply power to any connected electrical consumers or not.</para>
-            /// <para>You can also toggle the outlet by pressing a physical button on the device.</para>
-            /// <para>This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.</para>
-            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous outlet power states when it turns on again.</para>
+            /// <para>Energizes or deenergizes one of the device's sockets so it can supply power to a connected electrical consumer or not.</para>
+            /// <para>You can also toggle the socket by pressing a physical button on the device.</para>
+            /// <para>This call is idempotent: if you try to turn the socket on and it's already on, the call will have no effect.</para>
+            /// <para>The state is persisted across restarts. If the device loses power, it will restore the previous socket power states when it turns on again.</para>
             /// <para>This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use <see cref="ISystemCommands.Reboot"/>.</para>
             /// </summary>
-            /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to control the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
-            /// <param name="turnOn"><c>true</c> to supply power to the outlet, or <c>false</c> to switch if off.</param>
-            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+            /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to control the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+            /// <param name="turnOn"><c>true</c> to supply power to the socket, or <c>false</c> to switch it off.</param>
+            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-            Task SetOutletOn(int outletId, bool turnOn);
+            Task SetSocketOn(int socketId, bool turnOn);
 
             /// <summary>
             /// <para>The name or alias of an individual socket that you chose during setup.</para>
             /// <para>To get the alias of the entire device, see <see cref="ISystemCommands.GetName"/>.</para>
             /// </summary>
-            /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to specify the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
+            /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
             /// <returns>The name of the individual socket.</returns>
-            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+            /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-            Task<string> GetName(int outletId);
+            Task<string> GetName(int socketId);
 
             /// <summary>
             /// <para>Change the alias of an individual socket. This will appear in the Kasa mobile app.</para>
             /// <para>To change the alias of the entire device, see <see cref="ISystemCommands.SetName"/>.</para>
             /// </summary>
-            /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to specify the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
+            /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
             /// <param name="name">The new name of the device. The maximum length is 31 characters.</param>
-            /// <exception cref="ArgumentOutOfRangeException">if the new name is empty or longer than 31 characters; or if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+            /// <exception cref="ArgumentOutOfRangeException">if the new name is empty or longer than 31 characters; or if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-            Task SetName(int outletId, string name);
+            Task SetName(int socketId, string name);
+
+            /// <inheritdoc cref="IsSocketOn" />
+            [Obsolete($"This method was poorly named and has been renamed to {nameof(IsSocketOn)}", false)]
+            Task<bool> IsOutletOn(int socketId);
+
+            /// <inheritdoc cref="SetSocketOn" />
+            [Obsolete($"This method was poorly named and has been renamed to {nameof(SetSocketOn)}", false)]
+            Task SetOutletOn(int socketId, bool turnOn);
 
         }
 
@@ -302,10 +318,10 @@ public interface IKasaOutletBase: IDisposable {
     }
 
     /// <summary>
-    /// <para>Countdown timers allow you to schedule the outlet to turn on or off once after a delay of configurable duration.</para>
+    /// <para>Countdown timers allow you to schedule the socket to turn on or off once after a delay of configurable duration.</para>
     /// <para>Outlets can handle at most one timer at once.</para>
     /// </summary>
-    public interface ITimerCommandsSingleOutlet {
+    public interface ITimerCommandsSingleSocket {
 
         /// <summary>
         /// <para>Get the currently running countdown <see cref="Timer"/> rule on the device, along with its updated <see cref="Timer.RemainingDuration"/>.</para>
@@ -324,12 +340,12 @@ public interface IKasaOutletBase: IDisposable {
         /// <para>The created timer will be returned, which is useful if you want to inspect the newly-populated <see cref="Timer.RemainingDuration"/> property. To refresh <see cref="Timer.RemainingDuration"/> in the future, call <see cref="Get"/>.</para>
         /// </summary>
         /// <param name="duration">How long the timer should wait, since being started, before turning on or off.</param>
-        /// <param name="setOutletOnWhenComplete">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setOutletOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
+        /// <param name="setSocketOnWhenComplete">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
+        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
         /// <exception cref="FeatureUnavailable">If the device does not have a timer. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.Timer)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<Timer> Start(TimeSpan duration, bool setOutletOnWhenComplete);
+        Task<Timer> Start(TimeSpan duration, bool setSocketOnWhenComplete);
 
         /// <summary>
         /// <para>Delete any existing timer rule from the device, cancelling its countdown.</para>
@@ -343,13 +359,13 @@ public interface IKasaOutletBase: IDisposable {
 
     }
 
-    /// <inheritdoc cref="ITimerCommandsSingleOutlet" />
-    public interface ITimerCommandsMultiOutlet {
+    /// <inheritdoc cref="ITimerCommandsSingleSocket" />
+    public interface ITimerCommandsMultiSocket {
 
-        /// <inheritdoc cref="ITimerCommandsSingleOutlet.Get" />
-        /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to specify the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
-        Task<Timer?> Get(int outletId);
+        /// <inheritdoc cref="ITimerCommandsSingleSocket.Get" />
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
+        Task<Timer?> Get(int socketId);
 
         /// <summary>
         /// <para>Save a new, enabled countdown <see cref="Timer"/> to the device.</para>
@@ -357,30 +373,30 @@ public interface IKasaOutletBase: IDisposable {
         /// <para>The created timer will be returned, which is useful if you want to inspect the newly-populated <see cref="Timer.RemainingDuration"/> property. To refresh <see cref="Timer.RemainingDuration"/> in the future, call <see cref="Get"/>.</para>
         /// </summary>
         /// <param name="duration">How long the timer should wait, since being started, before turning on or off.</param>
-        /// <param name="setOutletOnWhenComplete">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-        /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to specify the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
-        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setOutletOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <param name="setSocketOnWhenComplete">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="FeatureUnavailable">If the device does not have a timer. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.Timer)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<Timer> Start(int outletId, TimeSpan duration, bool setOutletOnWhenComplete);
+        Task<Timer> Start(int socketId, TimeSpan duration, bool setSocketOnWhenComplete);
 
-        /// <inheritdoc cref="ITimerCommandsSingleOutlet.Clear" />
-        /// <param name="outletId">The index, increasing from 0, of the outlet on the device. For example, to specify the outlet with the physical label "plug 1," pass 0 to this parameter.</param>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
-        Task Clear(int outletId);
+        /// <inheritdoc cref="ITimerCommandsSingleSocket.Clear" />
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
+        Task Clear(int socketId);
 
     }
 
     /// <summary>
     /// <para>Commands that deal with schedules.</para>
-    /// <para>Schedules allow you to set the outlet to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
+    /// <para>Schedules allow you to set the socket to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
     /// </summary>
-    public interface IScheduleCommandsSingleOutlet {
+    public interface IScheduleCommandsSingleSocket {
 
         /// <summary>
-        /// Fetch all of the existing schedules from the outlet.
+        /// Fetch all of the existing schedules from the socket.
         /// </summary>
         /// <returns>A enumerable of <see cref="Schedule"/> rules, or the empty enumerable if the device has no schedules on it.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
@@ -388,7 +404,7 @@ public interface IKasaOutletBase: IDisposable {
         Task<IEnumerable<Schedule>> GetAll();
 
         /// <summary>
-        /// <para>Persist a schedule to the outlet.</para>
+        /// <para>Persist a schedule to the socket.</para>
         /// <para>To insert a new schedule, construct a new <see cref="Schedule"/> instance, leaving its <see cref="Schedule.Id"/> property <c>null</c>. After saving it with this method, the returned instance will be a copy with the <see cref="Schedule.Id"/> value populated.</para>
         /// <para>To update an existing schedule, retrieve it using <see cref="GetAll"/>, make any changes you like, then save it with this method.</para>
         /// </summary>
@@ -399,26 +415,26 @@ public interface IKasaOutletBase: IDisposable {
         Task<Schedule> Save(Schedule schedule);
 
         /// <summary>
-        /// Remove an existing schedule from the outlet.
+        /// Remove an existing schedule from the socket.
         /// </summary>
         /// <param name="schedule">The existing schedule to delete.</param>
-        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the socket, even if this method invocation didn't delete it.</returns>
         /// <exception cref="ArgumentException">If the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="GetAll"/> or <see cref="Save"/>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task Delete(Schedule schedule);
 
         /// <summary>
-        /// Remove an existing schedule from the outlet.
+        /// Remove an existing schedule from the socket.
         /// </summary>
         /// <param name="scheduleId">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
-        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the socket, even if this method invocation didn't delete it.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task Delete(string scheduleId);
 
         /// <summary>
-        /// Clear all existing schedules from the outlet.
+        /// Clear all existing schedules from the socket.
         /// </summary>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
@@ -426,60 +442,62 @@ public interface IKasaOutletBase: IDisposable {
 
     }
 
-    /// <inheritdoc cref="IScheduleCommandsSingleOutlet" />
-    public interface IScheduleCommandsMultiOutlet {
+    /// <inheritdoc cref="IScheduleCommandsSingleSocket" />
+    public interface IScheduleCommandsMultiSocket {
 
         /// <summary>
-        /// Fetch all of the existing schedules from the outlet.
+        /// Fetch all of the existing schedules from the socket.
         /// </summary>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
         /// <returns>A enumerable of <see cref="Schedule"/> rules, or the empty enumerable if the device has no schedules on it.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<IEnumerable<Schedule>> GetAll(int outletId);
+        Task<IEnumerable<Schedule>> GetAll(int socketId);
 
         /// <summary>
-        /// <para>Persist a schedule to the outlet.</para>
+        /// <para>Persist a schedule to the socket.</para>
         /// <para>To insert a new schedule, construct a new <see cref="Schedule"/> instance, leaving its <see cref="Schedule.Id"/> property <c>null</c>. After saving it with this method, the returned instance will be a copy with the <see cref="Schedule.Id"/> value populated.</para>
         /// <para>To update an existing schedule, retrieve it using <see cref="GetAll"/>, make any changes you like, then save it with this method.</para>
         /// </summary>
-        /// <param name="outletId"></param>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
         /// <param name="schedule">A new or existing schedule to insert or update.</param>
         /// <returns>The persisted instance, which always has a non-null <see cref="Schedule.Id"/> value.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task<Schedule> Save(int outletId, Schedule schedule);
+        Task<Schedule> Save(int socketId, Schedule schedule);
 
         /// <summary>
-        /// Remove an existing schedule from the outlet.
+        /// Remove an existing schedule from the socket.
         /// </summary>
-        /// <param name="outletId"></param>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
         /// <param name="schedule">The existing schedule to delete.</param>
-        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
-        /// <exception cref="ArgumentException">if the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="GetAll"/> or <see cref="Save"/>; or if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the socket, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="ArgumentException">if the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="GetAll"/> or <see cref="Save"/>; or if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task Delete(int outletId, Schedule schedule);
+        Task Delete(int socketId, Schedule schedule);
 
         /// <summary>
-        /// Remove an existing schedule from the outlet.
+        /// Remove an existing schedule from the socket.
         /// </summary>
-        /// <param name="outletId"></param>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
         /// <param name="scheduleId">The <see cref="Schedule.Id"/> of an existing schedule to delete.</param>
-        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the outlet, even if this method invocation didn't delete it.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <returns>Returns successfully when a schedule with the given <see cref="Schedule.Id"/> doesn't exist on the socket, even if this method invocation didn't delete it.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task Delete(int outletId, string scheduleId);
+        Task Delete(int socketId, string scheduleId);
 
         /// <summary>
-        /// Clear all existing schedules from the outlet.
+        /// Clear all existing schedules from the socket.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="outletId"/> is less than 0 or greater than or equal to the number of outlets on this device</exception>
+        /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
+        /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
-        Task DeleteAll(int outletId);
+        Task DeleteAll(int socketId);
 
     }
 
@@ -510,7 +528,7 @@ public interface IKasaOutletBase: IDisposable {
 }
 
 /// <summary>
-/// <para>A TP-Link Kasa outlet or plug. This interface is the main entry point to this library for devices with exactly one outlet, like the EP10. For devices like the EP40 with multiple outlets, see <see cref="IKasaMultiOutlet"/> instead. To create an instance, construct a new <see cref="KasaOutlet"/>.</para>
+/// <para>A TP-Link Kasa outlet. This interface is the main entry point to this library for devices with exactly one socket, like the EP10. For devices like the EP40 with multiple sockets, see <see cref="IMultiSocketKasaOutlet"/> instead. To create an instance, construct a new <see cref="KasaOutlet"/>.</para>
 /// <para>You may optionally call <see cref="IKasaOutletBase.Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="IKasaOutletBase.Connect"/> again.</para>
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
@@ -526,7 +544,7 @@ public interface IKasaOutlet: IKasaOutletBase {
     /// <summary>
     /// Commands that get or set system properties, like status, name, and whether the outlet is on or off.
     /// </summary>
-    ISystemCommands.ISingleOutlet System { get; }
+    ISystemCommands.ISingleSocket System { get; }
 
     /// <summary>
     /// <para>Commands that deal with countdown timers.</para>
@@ -534,38 +552,38 @@ public interface IKasaOutlet: IKasaOutletBase {
     /// <para>Outlets can handle at most one timer at once.</para>
     /// <para>This is unrelated to the current time of the device's internal clock, see <see cref="IKasaOutletBase.Time"/>.</para>
     /// </summary>
-    ITimerCommandsSingleOutlet Timer { get; }
+    ITimerCommandsSingleSocket Timer { get; }
 
     /// <summary>
     /// <para>Commands that deal with schedules.</para>
     /// <para>Schedules allow you to set the outlet to turn on or off once on a specific day and time, or multiple times with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.</para>
     /// <para>Outlets can handle multiple schedules at once.</para>
     /// </summary>
-    IScheduleCommandsSingleOutlet Schedule { get; }
+    IScheduleCommandsSingleSocket Schedule { get; }
 
 }
 
 /// <summary>
-/// <para>A TP-Link Kasa device with multiple outlets. This interface is the main entry point to this library for devices with more than one outlet, like the EP40. For devices like the EP10 with exactly one outlet, see <see cref="IKasaOutlet"/> instead. To create an instance, construct a new <see cref="KasaMultiOutlet"/>. Individual outlets IDs used in method parameters are 0-indexed.</para>
+/// <para>A TP-Link Kasa outlet with multiple sockets. This interface is the main entry point to this library for devices with more than one socket, like the EP40. For devices like the EP10 with exactly one socket, see <see cref="IKasaOutlet"/> instead. To create an instance, construct a new <see cref="MultiSocketKasaOutlet"/>. Individual socket IDs used in method parameters are 0-indexed.</para>
 /// <para>You may optionally call <see cref="IKasaOutletBase.Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="IKasaOutletBase.Connect"/> again.</para>
-/// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaMultiOutlet"/> instances, one per device.</para>
+/// <para>To communicate with multiple Kasa devices, construct multiple <see cref="MultiSocketKasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
-/// <code>using IKasaMultiOutlet outlet = new KasaMultiOutlet("192.168.1.100");
+/// <code>using IMultiSocketKasaOutlet outlet = new MultiSocketKasaOutlet("192.168.1.100");
 /// bool isOutletOn = await outlet.System.IsOutletOn(0);
 /// if (!isOutletOn) {
 ///     await outlet.System.SetOutletOn(0, true);
 /// }</code>
 /// </summary>
-public interface IKasaMultiOutlet: IKasaOutletBase {
+public interface IMultiSocketKasaOutlet: IKasaOutletBase {
 
     /// <inheritdoc cref="IKasaOutlet.System" />
-    ISystemCommands.IMultiOutlet System { get; }
+    ISystemCommands.IMultiSocket System { get; }
 
     /// <inheritdoc cref="IKasaOutlet.Timer" />
-    ITimerCommandsMultiOutlet Timer { get; }
+    ITimerCommandsMultiSocket Timer { get; }
 
     /// <inheritdoc cref="IKasaOutlet.Schedule" />
-    IScheduleCommandsMultiOutlet Schedule { get; }
+    IScheduleCommandsMultiSocket Schedule { get; }
 
 }

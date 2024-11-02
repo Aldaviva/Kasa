@@ -23,7 +23,7 @@ Kasa
     - [Energy Meter](#energy-meter)
 1. [Exceptions](#exceptions)
 1. [Supporting additional devices](#supporting-additional-devices)
-1. [Thanks](#thanks)
+1. [Acknowledgments](#acknowledgments)
 
 <!-- /MarkdownTOC -->
 
@@ -32,8 +32,8 @@ Kasa
 using Kasa;
 
 using IKasaOutlet kasa = new KasaOutlet("192.168.1.100");
-if (!await kasa.System.IsOutletOn()) {
-    await kasa.System.SetOutletOn(true);
+if (!await kasa.System.IsSocketOn()) {
+    await kasa.System.SetSocketOn(true);
 }
 ```
 
@@ -64,24 +64,23 @@ You can install this library into your project from [NuGet Gallery](https://www.
     - You can do this with the [Kasa Smart app for Android](https://play.google.com/store/apps/details?id=com.tplink.kasa_android) or [iOS](https://apps.apple.com/us/app/kasa-smart/id1034035493).
 1. Get your device's hostname.
     - You can find its IP address in your router's client or DHCP lists. The MAC address will match the one printed on the device and shown in Device Info in the Kasa Smart app.
-    - You can also scan for servers exposing TCP port 9999.
+    - You can scan for servers exposing TCP port 9999.
         ```sh
         nmap --open -pT:9999 192.168.1.0/24
         ```
-    - You can also use its FQDN if you assigned one using a DNS A record.
+    - You can use its FQDN if you assigned one using a DNS A record.
 1. Construct a new instance of a class below, passing the device's hostname as the `hostname` constructor parameter.
-    - If your device has exactly one outlet (like the EP10), the class to construct is **`KasaOutlet`**.
+    - If your device has exactly one AC socket (like the EP10), the class to construct is **`KasaOutlet`**.
         ```cs
         using IKasaOutlet kasa = new KasaOutlet(hostname: "192.168.1.100");
         ```
-    - If your device has multiple outlets (like the EP40), the class to construct is **`KasaMultiOutlet`**.
+    - If your device has multiple AC sockets (like the EP40), the class to construct is **`MultiSocketKasaOutlet`**.
         ```cs
-        using IKasaMultiOutlet kasa = new KasaMultiOutlet(hostname: "192.168.1.100");
+        using IMultiSocketKasaOutlet kasa = new MultiSocketKasaOutlet(hostname: "192.168.1.100");
         ```
-        Commands that are related to one specific outlet, rather than the overall device, require an outlet identifier as the first argument, which is an integer index that starts at 0 for the first outlet, and maps to the increasing 1-indexed numbers printed on the hardware (minus 1). For example, pass `0` to control "plug 1" on an EP40, and pass `1` to control "plug 2."
+        Commands that are related to one specific socket, rather than the overall outlet device, require a socket identifier as the first argument. This ID is the 0-indexed position of the socket on the device. For example, pass `0` as the `socketId` argument to control "plug 1" on an EP40, and pass `1` to control "plug 2."
 
-
-`IKasaOutlet` instances can be reused to send multiple commands over the lifetime of your application. You can add one to your dependency injection context and retain it for as long as you like. Remember to `Dispose()` it when you're done using it, so that it can tear down the TCP socket.
+Instances can be reused to send multiple commands over the lifetime of your application. You can add one to your dependency injection context and retain it for as long as you like. Remember to `Dispose` it when you're done using it, so that it can tear down the TCP socket.
 
 ### Connections
 
@@ -181,7 +180,7 @@ ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .AddNLog());
 
 using IKasaOutlet kasa = new KasaOutlet("192.168.1.100", new Options {
-    LoggerFactory = loggerFactory,
+    LoggerFactory = loggerFactory
 });
 ```
 
@@ -193,51 +192,51 @@ More information about each command, including the parameters accepted and data 
 
 ### System
 
-Commands that get or set system properties, like status, name, and whether the outlet is on or off.
+Commands that get or set system properties, like status, name, and whether the socket is on or off.
 
-#### IsOutletOn
-Get whether the outlet on the device is energized and can supply power to any connected electrical consumers or not.
+#### IsSocketOn
+Get whether the socket on the device is energized and can supply power to any connected electrical consumers or not.
 
-This is unrelated to whether the entire Kasa device is booted up and running. If you can connect to it, it's running.
+This is unrelated to whether the entire Kasa outlet device is booted up and running. If you can connect to it, it's running.
 ```cs
-bool isOn = await kasa.System.IsOutletOn();
-Console.WriteLine($"Outlet is {(isOn ? "on" : "off")}");
+bool isOn = await kasa.System.IsSocketOn();
+Console.WriteLine($"Socket is {(isOn ? "on" : "off")}");
 ```
 ```text
-Outlet is on
+Socket is on
 ```
 
-For devices with multiple outlets like the EP40, construct a new `KasaMultiOutlet` instead of `KasaOutlet`, and pass the 0-indexed outlet ID to `IsOutletOn` that specifies which outlet to query.
+For devices with multiple sockets like the EP40, construct a new `MultiSocketKasaOutlet` instead of `KasaOutlet`, and pass the 0-indexed socket ID to `IsSocketOn` that specifies which socket to query.
 ```cs
-using IKasaMultiOutlet ep40 = new KasaMultiOutlet("192.168.1.100");
-for (int outletId = 0; outletId < await ep40.System.CountOutlets(); outletId++) {
-    bool isOn = await ep40.System.IsOutletOn(outletId);
-    Console.WriteLine($"Outlet {outletId} is {(isOn ? "on" : "off")}");
+using IMultiSocketKasaOutlet ep40 = new MultiSocketKasaOutlet("192.168.1.100");
+for (int socketId = 0; socketId < await ep40.System.CountOutlets(); socketId++) {
+    bool isOn = await ep40.System.IsSocketOn(socketId);
+    Console.WriteLine($"Socket {socketId} is {(isOn ? "on" : "off")}");
 }
 ```
 ```text
-Outlet 0 is on
-Outlet 1 is off
+Socket 0 is on
+Socket 1 is off
 ```
 
-#### SetOutletOn
-Turn on or off the device's outlet so it can supply power to any connected electrical consumers or not.
+#### SetSocketOn
+Turn on or off the device's socket so it can supply power to any connected electrical consumers or not.
 
-You can also toggle the outlet by pressing the physical button on the device.
+You can also toggle the socket by pressing the physical button on the device.
 
-This call is idempotent: if you try to turn the outlet on and it's already on, the call will have no effect.
+This call is idempotent: if you try to turn the socket on and it's already on, the call will have no effect.
 
-The state is persisted across restarts. If the device loses power, it will restore the previous outlet power state when it turns on again.
+The state is persisted across restarts. If the device loses power, it will restore the previous socket power state when it turns on again.
 
-This call is unrelated to turning the entire Kasa device on or off. To reboot the device, use [`Reboot`](#reboot).
+This call is unrelated to turning the entire Kasa outlet device on or off. To reboot the device, use [`Reboot`](#reboot).
 ```cs
-await kasa.System.SetOutletOn(true);
+await kasa.System.SetSocketOn(true);
 ```
 
-For devices with multiple outlets like the EP40, construct a new `KasaMultiOutlet` instead of `KasaOutlet`, and pass the 0-indexed outlet ID to `SetOutletOn` that specifies which outlet to query.
+For devices with multiple sockets like the EP40, construct a new `MultiSocketKasaOutlet` instead of `KasaOutlet`, and pass the 0-indexed socket ID to `SetSocketOn` that specifies which socket to control.
 ```cs
-using IKasaMultiOutlet ep40 = new KasaMultiOutlet("192.168.1.100");
-await ep40.System.SetOutletOn(true, 0);
+using IMultiSocketKasaOutlet ep40 = new MultiSocketKasaOutlet("192.168.1.100");
+await ep40.System.SetSocketOn(0, true);
 ```
 
 #### GetName
@@ -250,7 +249,7 @@ Console.WriteLine($"Name: {name}");
 Name: Washing Machine
 ```
 
-For devices with multiple outlets like the EP40, each individual outlet also has its own name, in addition to the device's overall name. You can fetch the individual outlet name by passing the 0-indexed outlet ID to `GetName`.
+For devices with multiple sockets like the EP40, each individual socket also has its own name, in addition to the outlet device's overall name. You can fetch the individual socket name by passing the 0-indexed socket ID to `GetName`.
 ```cs
 await kasa.System.GetName(0);
 ```
@@ -261,20 +260,20 @@ Change the alias of this device. This will appear in the Kasa mobile app.
 await kasa.System.SetName("My Outlet");
 ```
 
-For devices with multiple outlets like the EP40, each individual outlet also has its own name, in addition to the device's overall name. You can change the individual outlet name by passing the 0-indexed outlet ID to `SetName`.
+For devices with multiple sockets like the EP40, each individual socket also has its own name, in addition to the outlet device's overall name. You can change the individual socket name by passing the 0-indexed socket ID to `SetName`.
 ```cs
-await kasa.System.SetName("Outlet 1", 0);
+await kasa.System.SetName(0, "Socket 1");
 ```
 
-#### CountOutlets
-Some devices have multiple outlets, like the EP40. This method returns the number of outlets on the device. For `IKasaMultiOutlet` instances, this will return a value greater than or equal to 2. For `IKasaOutlet` instances, this will always return 1.
+#### CountSockets
+Some outlets have multiple sockets, like the EP40. This method returns the number of sockets on the device. For `IMultiSocketKasaOutlet` instances, this will return a value greater than or equal to 2. For `IKasaOutlet` instances, this will always return 1. This is related to the number of physical AC sockets, not USB-A ports or TCP socket connections.
 
 ```cs
-int outletCount = await kasa.System.CountOutlets();
-Console.WriteLine("Device has {outletCount} outlets");
+int socketCount = await kasa.System.CountSockets();
+Console.WriteLine($"Device has {socketCount} sockets.");
 ```
 ```text
-Device has 2 outlets.
+Device has 2 sockets.
 ```
 
 #### GetInfo
@@ -310,11 +309,11 @@ OEM ID: 41372DE62C896B2C0E93C20D70B62DDB
 ```
 
 #### IsIndicatorLightOn
-Outlets have a physical status light (usually a blue LED) that shows whether they are supplying power to consumers or not.
+Sockets have a physical status light (usually a blue or green LED) that shows whether they are supplying power to consumers or not.
 
-This light can be disabled even when the outlet is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.
+This light can be disabled even when the socket is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.
 
-By default, this returns `true`, and the light will turn on if and only if the outlet is supplying power.
+By default, this returns `true`, and the light will turn on if and only if the socket is supplying power.
 ```cs
 bool isIndicatorLightOn = await kasa.System.IsIndicatorLightOn();
 Console.WriteLine($"Is indicator light on: {isIndicatorLightOn}");
@@ -324,11 +323,11 @@ Is indicator light on: true
 ```
 
 #### SetIndicatorLightOn
-Outlets have a physical status light that shows whether they are supplying power to consumers or not.
+Sockets have a physical status light that shows whether they are supplying power to consumers or not.
 
-This light can be disabled even when the outlet is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.
+This light can be disabled even when the socket is on, for example if it's annoyingly bright in a room where you're trying to watch a movie or go to sleep.
 
-When you set this to `true` (the default value), the light will turn on if and only if the outlet is supplying power. When you set this to `false`, the light will never turn on, regardless of whether the outlet is supplying power. This setting is persistent, so if you want the light to always be off, you don't need to call `SetIndicatorLightOn(false)` every time you call `SetOutletOn(true)`.
+When you set this to `true` (the default value), the light will turn on if and only if the socket is supplying power. When you set this to `false`, the light will never turn on, regardless of whether the socket is supplying power. This setting is persistent, so if you want the light to always be off, you don't need to call `SetIndicatorLightOn(false)` every time you call `SetSocketOn(true)`.
 
 Even when you set this to `false`, the light will still blink for a few seconds while the outlet is booting up before turning the light off.
 ```cs
@@ -341,7 +340,7 @@ Restart the device.
 Rebooting will interrupt power to any connected consumers for roughly 108 milliseconds.
 It takes about 8 seconds for a KP125 to completely reboot and resume responding to API requests, and about 14 seconds for an EP10.
 
-The existing outlet power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call [`SetOutletOn`](#setoutleton) to reestablish the previous state.
+The existing socket power state will be retained after rebooting, so if it was on before rebooting, it will turn on again after rebooting, and there is no need to explicitly call [`SetSocketOn`](#setsocketon) to reestablish the previous state.
 
 By default, this client will automatically reconnect to the outlet after it reboots, which can be tuned using the [`MaxAttempts`](#options) and [`RetryDelay`](#options) properties.
 ```cs
@@ -350,12 +349,12 @@ await kasa.System.Reboot(TimeSpan.FromSeconds(5));
 
 ### Time
 
-Commands that deal with the device's internal clock that keeps track of the current date and time.
+Commands that deal with the device's internal clock that keeps track of the current wall clock date and time.
 
-This is unrelated to schedules and timers that control when the outlet turns on or off, see [Timer](#timer).
+This is unrelated to schedules and timers that control when the socket turns on or off, see [Timer](#timer).
 
 #### GetTime
-Get the current local time from the device's internal clock.
+Get the current local date and time from the device's internal clock.
 ```cs
 DateTime time = await kasa.Time.GetTime();
 Console.WriteLine($"Device time: {time:F}");
@@ -365,7 +364,7 @@ Device time: Saturday, June 11, 2022 3:48:21 am
 ```
 
 #### GetTimeWithZoneOffset
-Get the current time and time zone from the device's internal clock.
+Get the current date, time, and time zone from the device's internal clock.
 ```cs
 DateTimeOffset dateTime = await kasa.Time.GetTimeWithZoneOffset();
 Console.WriteLine($"Device time: {dateTime:O}");
@@ -378,9 +377,8 @@ Device time: 2022-06-11T03:56:03.0000000-07:00
 Get a list of possible time zones that the device is in.
 
 This may return multiple possibilities instead of one time zone because, unfortunately, Kasa devices internally represent multiple time zones with non-unique identifiers.
-For example, `Central Standard Time` is unambiguously stored as `13` on the Kasa device, so this method will only return that time zone.
 
-However, `Eastern Standard Time` is stored as `18` on the Kasa device, which collides with `18` that it also uses to represent `Eastern Standard Time (Mexico)`, `Turks and Caicos Standard Time`, `Haiti Standard Time`, and `Easter Island Standard Time`, so this method will return all five possibilities since they cannot be distinguished based on the information provided by the device.
+For example, `Central Standard Time` is unambiguously stored as `13` on the Kasa device, so this method will only return that time zone. However, `Eastern Standard Time` is stored as `18` on the Kasa device, which collides with `18` that it also uses to represent `Eastern Standard Time (Mexico)`, `Turks and Caicos Standard Time`, `Haiti Standard Time`, and `Easter Island Standard Time`, so this method will return all five possibilities since they cannot be distinguished based on the information provided by the device.
 ```cs
 IEnumerable<TimeZoneInfo> timeZones = await kasa.Time.GetTimeZones();
 Console.WriteLine($"Device time zone may be {string.Join(" or ", timeZones.Select(zone => zone.Id))}");
@@ -396,9 +394,9 @@ await kasa.Time.SetTimeZone(TimeZoneInfo.Local);
 ```
 
 ### Timer
-Countdown timers allow you to schedule the outlet to turn on or off once after a delay of configurable duration.
+Countdown timers allow you to schedule the socket to turn on or off once after a delay of configurable duration.
 
-Outlets can handle at most one timer at once.
+Sockets can handle at most one timer at once.
 
 This is unrelated to the current time of the device's internal clock, see [Time](#time).
 
@@ -411,16 +409,16 @@ If no timer has ever been created, it already elapsed, or you deleted it with [C
 
 ```cs
 if(await outlet.Timer.Get() is { } timer){
-    Console.WriteLine($"Outlet will turn {(timer.SetOutletOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
+    Console.WriteLine($"Socket will turn {(timer.SetSocketOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
 } else {
     Console.WriteLine("No timer running.");
 }
 ```
 ```text
-Outlet will turn on in 9.3 seconds.
+Socket will turn on in 9.3 seconds.
 ```
 
-For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
+For devices like the EP40 with multiple sockets, pass the 0-indexed socket ID as the first argument.
 
 #### Start
 Save a new, enabled countdown timer to the device.
@@ -431,13 +429,13 @@ The created timer will be returned, which is useful if you want to inspect the n
 
 ```cs
 Timer timer = await outlet.Timer.Start(TimeSpan.FromMinutes(30), true);
-Console.WriteLine($"Outlet will turn {(timer.SetOutletOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
+Console.WriteLine($"Socket will turn {(timer.SetSocketOnWhenComplete ? "on" : "off")} in {timer.RemainingDuration.TotalSeconds:N1} seconds.");
 ```
 ```text
-Outlet will turn on in 1,800.0 seconds.
+Socket will turn on in 1,800.0 seconds.
 ```
 
-For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
+For devices like the EP40 with multiple sockets, pass the 0-indexed socket ID as the first argument.
 
 #### Clear
 Delete any existing timer rule from the device, cancelling its countdown.
@@ -450,15 +448,15 @@ Idempotent: this will succeed even if there are no timers to delete.
 await outlet.Timers.Clear();
 ```
 
-For devices like the EP40 with multiple outlets, pass the 0-indexed outlet ID as the first argument.
+For devices like the EP40 with multiple sockets, pass the 0-indexed socket ID as the first argument.
 
 ### Schedule
 Commands that deal with schedules.
 
-Schedules allow you to set the outlet to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.
+Schedules allow you to set the socket to turn on or off once on a specific date and time, or on multiple days with a weekly recurrence pattern. Times can be relative to the start of the day, sunrise, or sunset.
 
 #### GetAll
-Fetch all of the existing schedules from the outlet.
+Fetch all of the existing schedules from the socket.
 ```cs
 IEnumerable<Schedule> schedules = await outlet.Schedule.GetAll();
 foreach (Schedule s in schedules) {
@@ -467,7 +465,7 @@ foreach (Schedule s in schedules) {
         Schedule.Basis.Sunrise    => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunrise",
         Schedule.Basis.Sunset     => $"{s.Time:%m} min {(s.Time < TimeSpan.Zero ? "before" : "after")} sunset"
     };
-    Console.WriteLine($"Turn {(s.WillSetOutletOn ? "on " : "off")} at {time} on {(s.IsRecurring ? string.Join(", ", s.DaysOfWeek) : s.Date)}{(s.IsEnabled ? "" : " (disabled)")}");
+    Console.WriteLine($"Turn {(s.WillSetSocketOn ? "on " : "off")} at {time} on {(s.IsRecurring ? string.Join(", ", s.DaysOfWeek) : s.Date)}{(s.IsEnabled ? "" : " (disabled)")}");
 }
 ```
 ```text
@@ -477,7 +475,7 @@ Turn on  at 18:45 on Monday
 ```
 
 #### Save
-Persist a schedule to the outlet.
+Persist a schedule to the socket.
 
 To insert a new schedule, construct a new `Schedule` instance, leaving its `Schedule.Id` property `null`. After saving it with this method, the returned instance will be a copy with the `Schedule.Id` value populated.
 
@@ -493,7 +491,7 @@ Created schedule with ID 0D3D1C778103039FEBCAB23C261AD821
 ```
 
 #### Delete
-Remove an existing schedule from the outlet.
+Remove an existing schedule from the socket.
 
 You can pass an existing Schedule instance or just its `Id`.
 
@@ -506,7 +504,7 @@ await outlet.Schedule.Delete("0D3D1C778103039FEBCAB23C261AD821");
 ```
 
 #### DeleteAll
-Clear all existing schedules from the outlet.
+Clear all existing schedules from the socket.
 
 ```cs
 await outlet.Schedule.DeleteAll();
@@ -521,7 +519,7 @@ bool hasEnergyMeter = (await kasaOutlet.System.GetInfo()).Features.Contains(Feat
 ```
 
 #### GetInstantaneousPowerUsage
-Fetch a point-in-time measurement of the instantaneous electrical usage of the outlet.
+Fetch a point-in-time measurement of the instantaneous electrical usage of the socket.
 
 The returned `PowerUsage` struct has `Current` (mA), `Voltage` (mV), `Power` (mW) fields. There is also a `CumulativeEnergySinceBoot` (W⋅h) field that shows how much total energy has been used since the Kasa device last booted, and which resets to `0` when the device [reboots](#reboot), loses power, or has [`DeleteHistoricalUsage`](#deletehistoricalusage) called on it.
 ```cs
@@ -617,21 +615,21 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 
 #### Funding goals
 
-|Image|Name|Outlets|Weatherproofing|Form factor|Cost|
-|-|-|-:|-|-|-:|
-|![KP303](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp303.png)|[**KP303**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-kp303)|3|Indoor|Strip|$23 USD|
-|![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|$43 USD|
+|Image|Name|Sockets|Weatherproofing|Form factor|Reason to develop & test|Cost|
+|-|-|-:|-|-|-|-:|
+|![KP405](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp405.png)|[**KP405**](https://www.kasasmart.com/us/products/smart-plugs/product-kp405)|1|Outdoor|Plug|Dimmer|$15 USD|
+|![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|Multiple individual socket energy monitoring|$43 USD|
 
-## Thanks
+## Acknowledgments
 - [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*
 - [Reverse Engineering the TP-Link HS110](https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/) — *Lubomir Stroetmann and Tobias Esser*
 - [Controlling the TP-LINK HS100 Wi-Fi smart plug](https://blog.georgovassilis.com/2016/05/07/controlling-the-tp-link-hs100-wi-fi-smart-plug/) — *George Georgovassilis, Thomas Baust*
 - [python-kasa](https://github.com/python-kasa/python-kasa)
 - [Pi Projects](https://morepablo.com/2022/04/household-pi-projects.html) — *Pablo Meier*
-- [THLaundry](http://thlaundry.techhouse.org) — *Ben Hutchison, Robert Mustacchi*
+- [THLaundry](http://thlaundry.techhouse.org) — *Robert Mustacchi*
 - [homebridge-tplink-smarthome#202](https://github.com/plasticrake/homebridge-tplink-smarthome/issues/202) — *the1maximus*
 - [KasaLink](https://github.com/mguinness/KasaLink/blob/main/KasaLink/Program.cs) — *mguinness*
 - [kasasock](https://github.com/english299/Smart-Home-Without-the-Cloud/blob/main/kasaHS1xx/csharp/kasasock.cs) — *Brian English*
 - [Home Assistant](https://www.home-assistant.io/integrations/tplink)
-- [tplink-smarthome-simulator](https://github.com/plasticrake/tplink-smarthome-simulator) — *Patrick Seal*
 - EP40 hardware donation — *John M. McKeon*
+- [Wireshark TP-Link Smart Home Protocol dissector](https://www.wireshark.org/docs/dfref/t/tplink-smarthome.html) — *Fulko Hew*

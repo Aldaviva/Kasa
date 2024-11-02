@@ -5,19 +5,19 @@ namespace Kasa;
 public partial class KasaOutlet {
 
     /// <inheritdoc />
-    public IKasaOutletBase.ISystemCommands.ISingleOutlet System => this;
+    public IKasaOutletBase.ISystemCommands.ISingleSocket System => this;
 
     /// <inheritdoc />
-    async Task<bool> IKasaOutletBase.ISystemCommands.ISingleOutlet.IsOutletOn() {
+    async Task<bool> IKasaOutletBase.ISystemCommands.ISingleSocket.IsSocketOn() {
         SystemInfo systemInfo = await ((IKasaOutletBase.ISystemCommands) this).GetInfo().ConfigureAwait(false);
         return systemInfo.IsOutletOn;
     }
 
     /// <inheritdoc />
-    Task IKasaOutletBase.ISystemCommands.ISingleOutlet.SetOutletOn(bool turnOn) => SetOutletOn(turnOn, null);
+    Task IKasaOutletBase.ISystemCommands.ISingleSocket.SetSocketOn(bool turnOn) => SetSocketOn(turnOn, null);
 
-    /// <inheritdoc cref="IKasaOutletBase.ISystemCommands.ISingleOutlet.SetOutletOn(bool)" />
-    internal Task SetOutletOn(bool turnOn, ChildContext? context) {
+    /// <inheritdoc cref="IKasaOutletBase.ISystemCommands.ISingleSocket.SetSocketOn" />
+    internal Task SetSocketOn(bool turnOn, SocketContext? context) {
         return _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = Convert.ToInt32(turnOn) }, context);
     }
 
@@ -55,7 +55,7 @@ public partial class KasaOutlet {
     Task IKasaOutletBase.ISystemCommands.SetName(string name) => SetName(name, null);
 
     /// <inheritdoc cref="IKasaOutletBase.ISystemCommands.SetName" />
-    internal Task SetName(string name, ChildContext? context) {
+    internal Task SetName(string name, SocketContext? context) {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 31) {
             throw new ArgumentOutOfRangeException(nameof(name), name, "name must be between 1 and 31 characters long (inclusive), and cannot be only whitespace");
         }
@@ -64,8 +64,18 @@ public partial class KasaOutlet {
     }
 
     /// <inheritdoc />
-    Task<int> IKasaOutletBase.ISystemCommands.CountOutlets() {
+    Task<int> IKasaOutletBase.ISystemCommands.CountSockets() {
         return Task.FromResult(1);
+    }
+
+    /// <inheritdoc />
+    Task<bool> IKasaOutletBase.ISystemCommands.ISingleSocket.IsOutletOn() {
+        return System.IsSocketOn();
+    }
+
+    /// <inheritdoc />
+    Task IKasaOutletBase.ISystemCommands.ISingleSocket.SetOutletOn(bool turnOn) {
+        return System.SetSocketOn(turnOn);
     }
 
 }

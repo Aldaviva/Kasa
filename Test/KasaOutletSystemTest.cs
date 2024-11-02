@@ -13,7 +13,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
             IsOutletOn = expected
         });
 
-        bool actual = await Outlet.System.IsOutletOn();
+        bool actual = await Outlet.System.IsSocketOn();
 
         actual.Should().Be(expected);
     }
@@ -22,7 +22,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [InlineData(true, 1)]
     [InlineData(false, 0)]
     public async Task TurnOutletOn(bool turnOn, int expected) {
-        await Outlet.System.SetOutletOn(turnOn);
+        await Outlet.System.SetSocketOn(turnOn);
         A.CallTo(() => Client.Send<JObject>(CommandFamily.System, "set_relay_state", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { state = expected }, "")), null)).MustHaveHappened();
     }
 
@@ -92,7 +92,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
 
     [Fact]
     public async Task CountOutlets() {
-        (await Outlet.System.CountOutlets()).Should().Be(1);
+        (await Outlet.System.CountSockets()).Should().Be(1);
     }
 
 }

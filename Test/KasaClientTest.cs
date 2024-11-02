@@ -111,7 +111,7 @@ public class KasaClientTest {
             return Task.FromResult(length);
         });
 
-        JObject actual = await _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = 0 }, new ChildContext("800648C61B22DD1DE8AFD8858B29192022087E7200"));
+        JObject actual = await _client.Send<JObject>(CommandFamily.System, "set_relay_state", new { state = 0 }, new SocketContext("800648C61B22DD1DE8AFD8858B29192022087E7200"));
 
         byte[] expectedHeader = [0, 0, 0, 113];
         byte[] expectedPayload =

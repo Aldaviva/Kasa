@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace Kasa;
 
-internal readonly struct ChildOutlet {
+internal readonly struct Socket {
 
     [JsonProperty("alias")] public string Name { get; internal init; }
 

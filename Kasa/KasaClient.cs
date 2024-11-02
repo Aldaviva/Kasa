@@ -226,7 +226,7 @@ internal class KasaClient: IKasaClient {
             throw new ObjectDisposedException(nameof(KasaClient), "This KasaClient has already been disposed. Please construct a new KasaOutlet instance and use that instead.");
         }
 
-        Socket socket = _tcpClient.Client;
+        System.Net.Sockets.Socket socket = _tcpClient.Client;
         if (!socket.Connected || forceReconnect) {
             _tcpClient.Dispose();
             _tcpClient = new TcpClient(AddressFamily.InterNetwork);

@@ -4,22 +4,22 @@ using System.Net.NetworkInformation;
 
 namespace Test;
 
-public class KasaMultiOutletTest: IDisposable {
+public class SocketMultiSocketKasaOutletTest: IDisposable {
 
-    private readonly IKasaClient     _client = A.Fake<IKasaClient>();
-    private readonly KasaMultiOutlet _ep40;
+    private readonly IKasaClient           _client = A.Fake<IKasaClient>();
+    private readonly MultiSocketKasaOutlet _ep40;
 
-    public KasaMultiOutletTest() {
-        _ep40 = new KasaMultiOutlet(_client);
+    public SocketMultiSocketKasaOutletTest() {
+        _ep40 = new MultiSocketKasaOutlet(_client);
 
         A.CallTo(() => _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
-            Children = [
-                new ChildOutlet {
+            Sockets = [
+                new Socket {
                     Id         = "800648C61B22DD1DE8AFD8858B29192022087E7200",
                     IsOutletOn = false,
                     Name       = "Outlet 1"
                 },
-                new ChildOutlet {
+                new Socket {
                     Id         = "800648C61B22DD1DE8AFD8858B29192022087E7201",
                     IsOutletOn = true,
                     Name       = "Outlet 2"
@@ -46,15 +46,15 @@ public class KasaMultiOutletTest: IDisposable {
     public async Task GetInfo() {
         await _ep40.System.GetInfo();
 
-        (await _ep40.System.CountOutlets()).Should().Be(2);
+        (await _ep40.System.CountSockets()).Should().Be(2);
 
         A.CallTo(() => _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
     public async Task IsOutletOn() {
-        (await _ep40.System.IsOutletOn(0)).Should().BeFalse();
-        (await _ep40.System.IsOutletOn(1)).Should().BeTrue();
+        (await _ep40.System.IsSocketOn(0)).Should().BeFalse();
+        (await _ep40.System.IsSocketOn(1)).Should().BeTrue();
 
         A.CallTo(() => _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).MustHaveHappenedTwiceExactly();
     }
@@ -63,13 +63,13 @@ public class KasaMultiOutletTest: IDisposable {
     public async Task SetOutletOn() {
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_relay_state", A<object?>._, A<object?>._)).Returns(JObject.Parse("""{"set_relay_state":{"err_code":0}}"""));
 
-        await _ep40.System.SetOutletOn(0, false);
-        await _ep40.System.SetOutletOn(1, true);
+        await _ep40.System.SetSocketOn(0, false);
+        await _ep40.System.SetSocketOn(1, true);
 
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_relay_state", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { state = 0 }, "")),
-            new ChildContext("800648C61B22DD1DE8AFD8858B29192022087E7200"))).MustHaveHappened();
+            new SocketContext("800648C61B22DD1DE8AFD8858B29192022087E7200"))).MustHaveHappened();
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_relay_state", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { state = 1 }, "")),
-            new ChildContext("800648C61B22DD1DE8AFD8858B29192022087E7201"))).MustHaveHappened();
+            new SocketContext("800648C61B22DD1DE8AFD8858B29192022087E7201"))).MustHaveHappened();
     }
 
     [Fact]
@@ -82,16 +82,16 @@ public class KasaMultiOutletTest: IDisposable {
         await _ep40.System.SetName(0, "Outlet A");
 
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_dev_alias", An<object>.That.Matches(o => o.Should().BeEquivalentTo(new { alias = "Outlet A" }, "")),
-            new ChildContext("800648C61B22DD1DE8AFD8858B29192022087E7200"))).MustHaveHappened();
+            new SocketContext("800648C61B22DD1DE8AFD8858B29192022087E7200"))).MustHaveHappened();
     }
 
     [Fact]
     public void ChildContextEquality() {
-        ChildContext a = new("800648C61B22DD1DE8AFD8858B29192022087E7200");
-        ChildContext b = new("800648C61B22DD1DE8AFD8858B29192022087E7200");
+        SocketContext a = new("800648C61B22DD1DE8AFD8858B29192022087E7200");
+        SocketContext b = new("800648C61B22DD1DE8AFD8858B29192022087E7200");
         a.Should().Be(b);
         a.GetHashCode().Should().Be(b.GetHashCode());
-        a.ToString().Should().Be("childId: 800648C61B22DD1DE8AFD8858B29192022087E7200");
+        a.ToString().Should().Be("socketId: 800648C61B22DD1DE8AFD8858B29192022087E7200");
     }
 
     public void Dispose() {

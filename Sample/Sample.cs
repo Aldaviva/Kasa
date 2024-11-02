@@ -12,14 +12,14 @@ Options options = new() { MaxAttempts = 1, LoggerFactory = loggerFactory };
 
 using IKasaOutlet phoneCharger = new KasaOutlet("phonecharger.outlets.aldaviva.com", options);
 logger.LogInformation("{info}", (await phoneCharger.System.GetInfo()).ToString());
-bool isPhoneCharging = await phoneCharger.System.IsOutletOn();
+bool isPhoneCharging = await phoneCharger.System.IsSocketOn();
 logger.LogInformation("Phone {is} charging", isPhoneCharging ? "is" : "is not");
 
-using IKasaMultiOutlet ep40       = new KasaMultiOutlet("ep40.outlets.aldaviva.com", options);
-SystemInfo             systemInfo = await ep40.System.GetInfo();
+using IMultiSocketKasaOutlet ep40       = new MultiSocketKasaOutlet("ep40.outlets.aldaviva.com", options);
+SystemInfo                   systemInfo = await ep40.System.GetInfo();
 logger.LogInformation("{info}", systemInfo.ToString());
 
-for (int outletId = 0; outletId < await ep40.System.CountOutlets(); outletId++) {
-    bool wasOn = await ep40.System.IsOutletOn(outletId);
-    await ep40.System.SetOutletOn(outletId, !wasOn);
+for (int outletId = 0; outletId < await ep40.System.CountSockets(); outletId++) {
+    bool wasOn = await ep40.System.IsSocketOn(outletId);
+    await ep40.System.SetSocketOn(outletId, !wasOn);
 }
