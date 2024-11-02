@@ -9,13 +9,13 @@ public partial class KasaOutlet {
 
     /// <inheritdoc />
     async Task<bool> IKasaOutletBase.ICloudCommands.IsConnectedToCloudAccount() {
-        JObject response = await Client.Send<JObject>(CommandFamily.Cloud, "get_info").ConfigureAwait(false);
+        JObject response = await _client.Send<JObject>(CommandFamily.Cloud, "get_info").ConfigureAwait(false);
         return response.Value<int?>("binded") == 1;
     }
 
     /// <inheritdoc />
     Task IKasaOutletBase.ICloudCommands.DisconnectFromCloudAccount() {
-        return Client.Send<JObject>(CommandFamily.Cloud, "unbind");
+        return _client.Send<JObject>(CommandFamily.Cloud, "unbind");
     }
 
 }

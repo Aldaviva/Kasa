@@ -9,12 +9,12 @@ public partial class KasaOutlet {
 
     /// <inheritdoc />
     Task<PowerUsage> IKasaOutletBase.IEnergyMeterCommands.GetInstantaneousPowerUsage() {
-        return Client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
+        return _client.Send<PowerUsage>(CommandFamily.EnergyMeter, "get_realtime");
     }
 
     /// <inheritdoc />
     async Task<IList<int>?> IKasaOutletBase.IEnergyMeterCommands.GetDailyEnergyUsage(int year, int month) {
-        JArray     response = (JArray) (await Client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
+        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_daystat", new { year, month }).ConfigureAwait(false))["day_list"]!;
         List<int>? results  = null;
 
         if (response.Count > 0) {
@@ -32,7 +32,7 @@ public partial class KasaOutlet {
 
     /// <inheritdoc />
     async Task<IList<int>?> IKasaOutletBase.IEnergyMeterCommands.GetMonthlyEnergyUsage(int year) {
-        JArray     response = (JArray) (await Client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
+        JArray     response = (JArray) (await _client.Send<JObject>(CommandFamily.EnergyMeter, "get_monthstat", new { year }).ConfigureAwait(false))["month_list"]!;
         List<int>? results  = null;
 
         if (response.Count > 0) {
@@ -49,7 +49,7 @@ public partial class KasaOutlet {
 
     /// <inheritdoc />
     Task IKasaOutletBase.IEnergyMeterCommands.DeleteHistoricalUsage() {
-        return Client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
+        return _client.Send<JObject>(CommandFamily.EnergyMeter, "erase_emeter_stat");
     }
 
 }

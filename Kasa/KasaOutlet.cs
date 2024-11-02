@@ -1,7 +1,8 @@
 namespace Kasa;
 
 /// <summary>
-/// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
+/// <para>A TP-Link Kasa outlet or plug. This class is the main entry point of the Kasa library for devices with exactly one outlet, like the EP10. The corresponding interface is <see cref="IKasaOutlet"/>.</para>
+/// <para>For devices with multiple outlets like the EP40, you should instead construct a new instance of <see cref="KasaMultiOutlet"/>, rather than this class.</para>
 /// <para>You may optionally call <see cref="Connect"/> on each instance before using it. If you don't, it will connect automatically when sending the first command.</para>
 /// <para>Remember to <c>Dispose</c> each instance when you're done using it in order to close the TCP connection with the device. Disposed instances may not be reused, even if you call <see cref="Connect"/> again.</para>
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
@@ -12,20 +13,18 @@ namespace Kasa;
 ///     await outlet.System.SetOutletOn(true);
 /// }</code>
 /// </summary>
-public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.SingleOutlet, IKasaOutletBase.ITimeCommands, IKasaOutletBase.IEnergyMeterCommands,
-    IKasaOutletBase.ITimerCommandsSingleOutlet,
-    IKasaOutletBase.IScheduleCommandsSingleOutlet,
-    IKasaOutletBase.ICloudCommands {
+public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.ISingleOutlet, IKasaOutletBase.ITimeCommands, IKasaOutletBase.IEnergyMeterCommands,
+    IKasaOutletBase.ITimerCommandsSingleOutlet, IKasaOutletBase.IScheduleCommandsSingleOutlet, IKasaOutletBase.ICloudCommands {
 
-    internal readonly IKasaClient Client;
+    private readonly IKasaClient _client;
 
     /// <inheritdoc />
-    public string Hostname => Client.Hostname;
+    public string Hostname => _client.Hostname;
 
     /// <inheritdoc />
     public Options Options {
-        get => Client.Options;
-        set => Client.Options = value;
+        get => _client.Options;
+        set => _client.Options = value;
     }
 
     /// <summary>
@@ -39,12 +38,12 @@ public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.Si
     public KasaOutlet(string hostname, Options? options = null): this(new KasaClient(hostname) { Options = options ?? new Options() }) { }
 
     internal KasaOutlet(IKasaClient client) {
-        Client = client;
+        _client = client;
     }
 
     /// <inheritdoc />
     public Task Connect() {
-        return Client.Connect();
+        return _client.Connect();
     }
 
     /// <summary>
@@ -53,7 +52,7 @@ public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.Si
     /// <param name="disposing"><c>true</c> to dispose the TCP client, <c>false</c> if you're running in a finalizer and it's already been disposed</param>
     protected virtual void Dispose(bool disposing) {
         if (disposing) {
-            Client.Dispose();
+            _client.Dispose();
         }
     }
 

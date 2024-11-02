@@ -12,8 +12,10 @@ public partial class KasaOutlet {
         return await GetAllSchedules(null).ConfigureAwait(false);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal async Task<IEnumerable<Schedule>> GetAllSchedules(ChildContext? context) {
-        JObject response = await Client.Send<JObject>(CommandFamily.Schedule, "get_rules", null, context).ConfigureAwait(false);
+        JObject response = await _client.Send<JObject>(CommandFamily.Schedule, "get_rules", null, context).ConfigureAwait(false);
         return response["rule_list"]!.ToObject<IEnumerable<Schedule>>(KasaClient.JsonSerializer)!;
     }
 
@@ -22,13 +24,15 @@ public partial class KasaOutlet {
         return await SaveSchedule(schedule, null).ConfigureAwait(false);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal async Task<Schedule> SaveSchedule(Schedule schedule, ChildContext? context) {
         string id;
         if (schedule.Id is null) {
-            JObject created = await Client.Send<JObject>(CommandFamily.Schedule, "add_rule", schedule, context).ConfigureAwait(false);
+            JObject created = await _client.Send<JObject>(CommandFamily.Schedule, "add_rule", schedule, context).ConfigureAwait(false);
             id = created["id"]!.ToObject<string>(KasaClient.JsonSerializer)!;
         } else {
-            await Client.Send<JObject>(CommandFamily.Schedule, "edit_rule", schedule, context).ConfigureAwait(false);
+            await _client.Send<JObject>(CommandFamily.Schedule, "edit_rule", schedule, context).ConfigureAwait(false);
             id = schedule.Id;
         }
 
@@ -40,7 +44,9 @@ public partial class KasaOutlet {
         return DeleteSchedule(schedule, null);
     }
 
-    /// <exception cref="ArgumentException">If the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="IKasaOutletBase.IScheduleCommandsSingleOutlet.GetAll"/> or <see cref="Save"/>.</exception>
+    /// <exception cref="ArgumentException">If the <paramref name="schedule"/> parameter has a <c>null</c> value for the <see cref="Schedule.Id"/> property, possibly because it was newly constructed instead of being fetched from <see cref="IKasaOutletBase.IScheduleCommandsSingleOutlet.GetAll"/> or <see cref="IKasaOutletBase.IScheduleCommandsSingleOutlet.Save"/>.</exception>
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal Task DeleteSchedule(Schedule schedule, ChildContext? context) {
         if (schedule.Id is not null) {
             return DeleteSchedule(schedule.Id, context);
@@ -55,8 +61,10 @@ public partial class KasaOutlet {
         return DeleteSchedule(scheduleId, null);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal Task DeleteSchedule(string id, ChildContext? context) {
-        return Client.Send<JObject>(CommandFamily.Schedule, "delete_rule", new { id }, context);
+        return _client.Send<JObject>(CommandFamily.Schedule, "delete_rule", new { id }, context);
     }
 
     /// <inheritdoc />
@@ -64,8 +72,10 @@ public partial class KasaOutlet {
         return DeleteAllSchedules(null);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal Task DeleteAllSchedules(ChildContext? context) {
-        return Client.Send<JObject>(CommandFamily.Schedule, "delete_all_rules", null, context);
+        return _client.Send<JObject>(CommandFamily.Schedule, "delete_all_rules", null, context);
     }
 
 }

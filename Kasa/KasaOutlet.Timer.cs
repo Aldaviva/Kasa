@@ -12,8 +12,10 @@ public partial class KasaOutlet {
         return await GetTimer(null).ConfigureAwait(false);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal async Task<Timer?> GetTimer(ChildContext? context) {
-        JArray jToken = (JArray) (await Client.Send<JObject>(CommandFamily.Timer, "get_rules", null, context).ConfigureAwait(false))["rule_list"]!;
+        JArray jToken = (JArray) (await _client.Send<JObject>(CommandFamily.Timer, "get_rules", null, context).ConfigureAwait(false))["rule_list"]!;
         return jToken.ToObject<IEnumerable<Timer>>(KasaClient.JsonSerializer)!.FirstOrDefault() is { IsEnabled: true } timer ? timer : null;
     }
 
@@ -22,10 +24,12 @@ public partial class KasaOutlet {
         return StartTimer(duration, setOutletOnWhenComplete, null);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal async Task<Timer> StartTimer(TimeSpan duration, bool setOutletOnWhenComplete, ChildContext? context) {
         await ClearTimers(context).ConfigureAwait(false);
         Timer timer = new(duration, setOutletOnWhenComplete);
-        await Client.Send<JObject>(CommandFamily.Timer, "add_rule", timer, context).ConfigureAwait(false);
+        await _client.Send<JObject>(CommandFamily.Timer, "add_rule", timer, context).ConfigureAwait(false);
         return (await GetTimer(context).ConfigureAwait(false))!.Value;
     }
 
@@ -34,8 +38,10 @@ public partial class KasaOutlet {
         return ClearTimers(null);
     }
 
+    /// <exception cref="NetworkException"></exception>
+    /// <exception cref="ResponseParsingException"></exception>
     internal Task ClearTimers(ChildContext? context) {
-        return Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", context);
+        return _client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", context);
     }
 
 }

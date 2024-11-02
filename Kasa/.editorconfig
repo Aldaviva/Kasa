@@ -1,5 +1,5 @@
 [*]
-dotnet_ignored_exceptions = System.OutOfMemoryException, System.OverflowException
+dotnet_ignored_exceptions = System.OutOfMemoryException, System.OverflowException, Kasa.FeatureUnavailable, System.Threading.SemaphoreFullException
 
 dotnet_diagnostic.Ex0100.severity = warning # Exception Analyzers: Member may throw undocumented exception
 dotnet_diagnostic.Ex0101.severity = warning # Exception Analyzers: Member accessor may throw undocumented exception

@@ -9,7 +9,7 @@ public partial class KasaOutlet {
 
     /// <inheritdoc />
     async Task<DateTime> IKasaOutletBase.ITimeCommands.GetTime() {
-        JObject response = await Client.Send<JObject>(CommandFamily.Time, "get_time").ConfigureAwait(false);
+        JObject response = await _client.Send<JObject>(CommandFamily.Time, "get_time").ConfigureAwait(false);
         return new DateTime(
             response["year"]!.ToObject<int>(KasaClient.JsonSerializer),
             response["month"]!.ToObject<int>(KasaClient.JsonSerializer),
@@ -29,7 +29,7 @@ public partial class KasaOutlet {
     /// <inheritdoc />
     // ExceptionAdjustment: M:System.TimeZoneInfo.FindSystemTimeZoneById(System.String) -T:System.Security.SecurityException
     async Task<IEnumerable<TimeZoneInfo>> IKasaOutletBase.ITimeCommands.GetTimeZones() {
-        JObject response         = await Client.Send<JObject>(CommandFamily.Time, "get_timezone").ConfigureAwait(false);
+        JObject response         = await _client.Send<JObject>(CommandFamily.Time, "get_timezone").ConfigureAwait(false);
         int     deviceTimezoneId = response["index"]!.ToObject<int>(KasaClient.JsonSerializer);
 
         IEnumerable<string> windowsZoneIds = TimeZones.KasaIndicesToWindowsZoneIds[deviceTimezoneId];
@@ -46,7 +46,7 @@ public partial class KasaOutlet {
     Task IKasaOutletBase.ITimeCommands.SetTimeZone(TimeZoneInfo timeZone) {
         try {
             int deviceTimezoneId = TimeZones.WindowsZoneIdsToKasaIndices[timeZone.Id];
-            return Client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
+            return _client.Send<JObject>(CommandFamily.Time, "set_timezone", new { index = deviceTimezoneId });
         } catch (KeyNotFoundException e) {
             throw new TimeZoneNotFoundException($"Kasa devices don't have a built-in time zone that matches {timeZone.Id}." +
                 $"Consult Kasa.{nameof(TimeZones)}.{nameof(TimeZones.WindowsZoneIdsToKasaIndices)} for supported time zones.", e);
