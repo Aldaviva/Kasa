@@ -16,7 +16,7 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
         actual.IsEnabled.Should().BeTrue();
         actual.TotalDuration.Should().Be(TimeSpan.FromMinutes(30));
         actual.RemainingDuration.Should().Be(TimeSpan.FromMinutes(30));
-        actual.WillSetOutletOn.Should().BeTrue();
+        actual.WillSetSocketOn.Should().BeTrue();
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class KasaOutletTimerTest: AbstractKasaOutletTest {
         actual.IsEnabled.Should().BeTrue();
         actual.TotalDuration.Should().Be(TimeSpan.FromMinutes(30));
         actual.RemainingDuration.Should().Be(TimeSpan.FromMinutes(30));
-        actual.WillSetOutletOn.Should().BeTrue();
+        actual.WillSetSocketOn.Should().BeTrue();
 
         A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "delete_all_rules", null, null)).MustHaveHappened()
             .Then(A.CallTo(() => Client.Send<JObject>(CommandFamily.Timer, "add_rule", new Timer(TimeSpan.FromMinutes(30), true), null)).MustHaveHappened())

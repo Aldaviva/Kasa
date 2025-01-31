@@ -1,9 +1,9 @@
-using System.Collections.Immutable;
-using System.Net.NetworkInformation;
 using Kasa;
 using Kasa.Marshal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Immutable;
+using System.Net.NetworkInformation;
 using Timer = Kasa.Timer;
 
 namespace Test;
@@ -75,7 +75,7 @@ public class MarshalTests {
         actual.HardwareId.Should().Be("AE6865C67F6A54B756C0B5812472C825");
         actual.HardwareVersion.Should().Be("1.0");
         actual.IndicatorLightDisabled.Should().BeFalse();
-        actual.IsOutletOn.Should().BeFalse();
+        actual.IsSocketOn.Should().BeFalse();
         actual.MacAddress.Should().Be(new PhysicalAddress(new byte[] { 0x5C, 0xA6, 0xE6, 0x4E, 0xF3, 0xEF }));
         actual.ModelName.Should().Be("EP10(US)");
         actual.ModelFamily.Should().Be("Smart Wi-Fi Plug Mini");

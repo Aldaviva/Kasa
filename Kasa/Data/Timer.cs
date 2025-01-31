@@ -1,11 +1,13 @@
-using Kasa.Marshal;
 using Newtonsoft.Json;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using TimeSpanConverter = Kasa.Marshal.TimeSpanConverter;
 
 namespace Kasa;
 
 /// <summary>
 /// <para>A countdown timer rule for use with the <see cref="IKasaOutlet.Timer"/> family of commands.</para>
-/// <para>These timers can turn the outlet on or off after a specified duration.</para>
+/// <para>These timers can turn a socket on or off after a specified duration.</para>
 /// </summary>
 public struct Timer {
 
@@ -23,9 +25,19 @@ public struct Timer {
     [JsonProperty("enable")] public bool IsEnabled { get; set; }
 
     /// <summary>
-    /// <para>Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</para>
+    /// <para>Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</para>
     /// </summary>
-    [JsonProperty("act")] public bool WillSetOutletOn { get; set; }
+    [JsonProperty("act")] public bool WillSetSocketOn { get; set; }
+
+    /// <inheritdoc cref="WillSetSocketOn" />
+    [JsonIgnore]
+    [Obsolete($"This property was poorly named, and has been renamed to {nameof(WillSetSocketOn)}", false)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [ExcludeFromCodeCoverage]
+    public bool WillSetOutletOn {
+        get => WillSetSocketOn;
+        set => WillSetSocketOn = value;
+    }
 
     /// <summary>
     /// <para>How long the timer should wait, since it was started, before turning on or off.</para>
@@ -53,14 +65,14 @@ public struct Timer {
 
     /// <summary>
     /// <para>A countdown timer rule for use with the <see cref="IKasaOutlet.Timer"/> family of commands.</para>
-    /// <para>These timers can turn the outlet on or off after a specified duration.</para>
+    /// <para>These timers can turn the socket on or off after a specified duration.</para>
     /// </summary>
     /// <param name="duration">How long the timer should wait, after being set on the outlet, before turning on or off.</param>
-    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-    public Timer(TimeSpan duration, bool willSetOutletOn): this() {
+    /// <param name="willSetSocketOn">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
+    public Timer(TimeSpan duration, bool willSetSocketOn): this() {
         IsEnabled       = true;
         TotalDuration   = duration;
-        WillSetOutletOn = willSetOutletOn;
+        WillSetSocketOn = willSetSocketOn;
     }
 
 }

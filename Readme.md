@@ -11,6 +11,7 @@ Kasa
 
 1. [Quick Start](#quick-start)
 1. [Prerequisites](#prerequisites)
+1. [Terminology](#terminology)
 1. [Installation](#installation)
 1. [Configuration](#configuration)
     - [Connections](#connections)
@@ -51,6 +52,18 @@ if (!await kasa.System.IsSocketOn()) {
     - [.NET Core 2.0 or later](https://dotnet.microsoft.com/en-us/download/dotnet)
     - [.NET Framework 4.6.1 or later](https://dotnet.microsoft.com/en-us/download/dotnet-framework)
 
+## Terminology
+
+_**outlet**_
+
+The entire Kasa device that supplies AC power, regardless of whether it takes the form of a plug, dongle, strip, or wall plate. Has one or more electrical sockets on it.
+
+_**socket**_
+
+A three-prong 15A AC NEMA 5-15-R receptacle located on an outlet. Unrelated to TCP/IP socket connections used for network communication.
+
+For example, the EP10 is an outlet that has one socket, while the EP40 is an outlet that has two sockets.
+
 ## Installation
 
 You can install this library into your project from [NuGet Gallery](https://www.nuget.org/packages/Kasa):
@@ -79,6 +92,20 @@ You can install this library into your project from [NuGet Gallery](https://www.
         using IMultiSocketKasaOutlet kasa = new MultiSocketKasaOutlet(hostname: "192.168.1.100");
         ```
         Commands that are related to one specific socket, rather than the overall outlet device, require a socket identifier as the first argument. This ID is the 0-indexed position of the socket on the device. For example, pass `0` as the `socketId` argument to control "plug 1" on an EP40, and pass `1` to control "plug 2."
+    - If you don't know how many AC sockets the outlet has and can't set it through configuration or parameters, you can construct a `KasaOutlet` and check its [`System.CountSockets()`](#countsockets) result to determine if you should instead construct a `MultiSocketKasaOutlet`. This requires the outlet to be online, and is slower and asynchronous because it sends it a request.
+        ```cs
+        KasaOutlet singleSocketOutlet = new(hostname: "192.168.1.100");
+        if (await singleSocketOutlet.System.CountSockets() == 1) {
+            return singleSocketOutlet;
+        } else {
+            singleSocketOutlet.Dispose();
+            return new MultiSocketKasaOutlet(hostname: "192.168.1.100");
+        }
+        ```
+        This logic is provided in **`KasaOutletFactory.CreateOutlet`**:
+        ```cs
+        using IKasaOutletBase kasa = await KasaOutletFactory.CreateOutlet(hostname: "192.168.1.100");
+        ```
 
 Instances can be reused to send multiple commands over the lifetime of your application. You can add one to your dependency injection context and retain it for as long as you like. Remember to `Dispose` it when you're done using it, so that it can tear down the TCP socket.
 
@@ -157,7 +184,7 @@ Host.CreateDefaultBuilder(args).ConfigureServices(services => {
 
 ##### Manual
 ```c
-sILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder
     .AddFilter("Kasa", LogLevel.Trace)
     .AddConsole());
 
@@ -186,7 +213,7 @@ using IKasaOutlet kasa = new KasaOutlet("192.168.1.100", new Options {
 
 ## Commands
 
-All commands are asynchronous, so you should `await` the returned `Task` to get the result.
+All commands are asynchronous, so you should `await` the returned `Task` inside an `async` method to get the result.
 
 More information about each command, including the parameters accepted and data returned, is available in their class and method comments.
 
@@ -209,7 +236,7 @@ Socket is on
 For devices with multiple sockets like the EP40, construct a new `MultiSocketKasaOutlet` instead of `KasaOutlet`, and pass the 0-indexed socket ID to `IsSocketOn` that specifies which socket to query.
 ```cs
 using IMultiSocketKasaOutlet ep40 = new MultiSocketKasaOutlet("192.168.1.100");
-for (int socketId = 0; socketId < await ep40.System.CountOutlets(); socketId++) {
+for (int socketId = 0; socketId < await ep40.System.CountSockets(); socketId++) {
     bool isOn = await ep40.System.IsSocketOn(socketId);
     Console.WriteLine($"Socket {socketId} is {(isOn ? "on" : "off")}");
 }
@@ -266,7 +293,7 @@ await kasa.System.SetName(0, "Socket 1");
 ```
 
 #### CountSockets
-Some outlets have multiple sockets, like the EP40. This method returns the number of sockets on the device. For `IMultiSocketKasaOutlet` instances, this will return a value greater than or equal to 2. For `IKasaOutlet` instances, this will always return 1. This is related to the number of physical AC sockets, not USB-A ports or TCP socket connections.
+Some outlets have multiple sockets, like the EP40. This method returns the number of physical AC sockets actually on the device, regardless of whether the class is `KasaOutlet` or `MultiSocketKasaOutlet`, so you can use this to dynamically decide which class to construct. This count excludes USB ports.
 
 ```cs
 int socketCount = await kasa.System.CountSockets();
@@ -617,12 +644,12 @@ If you want this library to support [more Kasa smart outlets](https://www.kasasm
 
 |Image|Name|Sockets|Weatherproofing|Form factor|Reason to develop & test|Cost|
 |-|-|-:|-|-|-|-:|
-|![KP405](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp405.png)|[**KP405**](https://www.kasasmart.com/us/products/smart-plugs/product-kp405)|1|Outdoor|Plug|Dimmer|$15 USD|
-|![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|Multiple individual socket energy monitoring|$43 USD|
+|![KP405](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/kp405.png)|[**KP405**](https://www.kasasmart.com/us/products/smart-plugs/product-kp405)|1|Outdoor|Dongle|Dimmer|$27 USD|
+|![HS300](https://raw.githubusercontent.com/Aldaviva/Kasa/master/.github/images/hs300.png)|[**HS300**](https://www.kasasmart.com/us/products/smart-plugs/kasa-smart-wi-fi-power-strip-hs300)|6|Indoor|Strip|Multiple individual socket energy monitoring|$52 USD|
 
 ## Acknowledgments
-- [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann and Tobias Esser*
-- [Reverse Engineering the TP-Link HS110](https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/) — *Lubomir Stroetmann and Tobias Esser*
+- [tplink-smarthome-commands.txt](https://github.com/softScheck/tplink-smartplug/blob/master/tplink-smarthome-commands.txt) — *Lubomir Stroetmann, Tobias Esser*
+- [Reverse Engineering the TP-Link HS110](https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/) — *Lubomir Stroetmann, Tobias Esser*
 - [Controlling the TP-LINK HS100 Wi-Fi smart plug](https://blog.georgovassilis.com/2016/05/07/controlling-the-tp-link-hs100-wi-fi-smart-plug/) — *George Georgovassilis, Thomas Baust*
 - [python-kasa](https://github.com/python-kasa/python-kasa)
 - [Pi Projects](https://morepablo.com/2022/04/household-pi-projects.html) — *Pablo Meier*

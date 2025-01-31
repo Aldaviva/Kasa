@@ -70,7 +70,7 @@ public readonly struct SystemInfo {
     /// </summary>
     [JsonProperty("oemId")] public string OemId { get; internal init; }
 
-    [JsonProperty("relay_state")] internal bool IsOutletOn { get; init; }
+    [JsonProperty("relay_state")] internal bool IsSocketOn { get; init; }
 
     /// <summary>
     /// <para>Received Signal Strength Indicator. The signal strength of the device's Wi-Fi connection, expressed as a non-positive number such as <c>-61</c>. The strongest signal has a value of <c>0</c>, while a very weak signal has a value around <c>-77</c>.</para>
@@ -95,6 +95,7 @@ public readonly struct SystemInfo {
     [JsonProperty("feature")] public ISet<Feature> Features { get; internal init; }
 
     [JsonProperty("children")] internal IEnumerable<Socket>? Sockets { get; init; }
+    [JsonProperty("child_num")] internal int? SocketCount { get; init; }
 
     /// <inheritdoc />
     public override string ToString() =>

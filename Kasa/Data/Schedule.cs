@@ -1,4 +1,6 @@
 using Newtonsoft.Json;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 // ReSharper disable PropertyCanBeMadeInitOnly.Local - not available in .NET Standard 2.0
 // ReSharper disable PropertyCanBeMadeInitOnly.Global - not available in .NET Standard 2.0
@@ -7,7 +9,7 @@ namespace Kasa;
 
 /// <summary>
 /// <para>A time-of-day–based rule for use with the <see cref="IKasaOutlet.Schedule"/> family of commands.</para>
-/// <para>These schedules can turn the outlet on or off at a specified time of day, with optional weekly recurrence, and can optionally be relative to sunrise and sunset instead of midnight.</para>
+/// <para>These schedules can turn a socket on or off at a specified time of day, with optional weekly recurrence, and can optionally be relative to sunrise and sunset instead of midnight.</para>
 /// </summary>
 public struct Schedule {
 
@@ -37,9 +39,19 @@ public struct Schedule {
     [JsonProperty("repeat")] public bool IsRecurring { get; set; }
 
     /// <summary>
-    /// Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.
+    /// Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.
     /// </summary>
-    [JsonProperty("sact")] public bool WillSetOutletOn { get; set; }
+    [JsonProperty("sact")] public bool WillSetSocketOn { get; set; }
+
+    /// <inheritdoc cref="WillSetSocketOn" />
+    [Obsolete($"This property was poorly named, and has been renamed to {nameof(WillSetSocketOn)}", false)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [JsonIgnore]
+    [ExcludeFromCodeCoverage]
+    public bool WillSetOutletOn {
+        get => WillSetSocketOn;
+        set => WillSetSocketOn = value;
+    }
 
     /// <summary>
     /// Whether the given <see cref="Time"/> value is relative to the start of the day (midnight), sunrise, or sunset.
@@ -47,7 +59,7 @@ public struct Schedule {
     [JsonProperty("stime_opt")] public Basis TimeBasis { get; set; } = Basis.StartOfDay;
 
     /// <summary>
-    /// <para>When <see cref="IsRecurring"/> is <c>true</c>, controls the days of the week on which the schedule recurs, or the empty set for non-recurring schedules.</para>
+    /// <para>When <see cref="IsRecurring"/> is <c>true</c>, controls the days of the week on which the schedule occurs, or the empty set for non-recurring schedules.</para>
     /// </summary>
     [JsonProperty("wday")] public ISet<DayOfWeek> DaysOfWeek { get; set; }
 
@@ -100,13 +112,13 @@ public struct Schedule {
     /// <summary>
     /// <para>Construct a new schedule that recurs weekly, on specific days, at a specific time of day.</para>
     /// </summary>
-    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the schedule recurs.</param>
+    /// <param name="willSetSocketOn">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the schedule recurs.</param>
     /// <param name="weeklyRecurrence">Days of the week on which this schedule will recur every week.</param>
-    /// <param name="timeOfDay">The time of day at which to turn the outlet on or off each day the schedule recurs.</param>
-    public Schedule(bool willSetOutletOn, IEnumerable<DayOfWeek>? weeklyRecurrence, TimeOnly timeOfDay) {
+    /// <param name="timeOfDay">The time of day at which to turn the socket on or off each day the schedule recurs.</param>
+    public Schedule(bool willSetSocketOn, IEnumerable<DayOfWeek>? weeklyRecurrence, TimeOnly timeOfDay) {
         DaysOfWeek      = new HashSet<DayOfWeek>(weeklyRecurrence ?? Enumerable.Empty<DayOfWeek>());
         IsRecurring     = DaysOfWeek.Any();
-        WillSetOutletOn = willSetOutletOn;
+        WillSetSocketOn = willSetSocketOn;
         TimeBasis       = Basis.StartOfDay;
         Time            = timeOfDay.ToTimeSpan();
     }
@@ -114,14 +126,14 @@ public struct Schedule {
     /// <summary>
     /// <para>Construct a new schedule that recurs weekly, on specific days, at a specific period before or after sunrise or sunset.</para>
     /// </summary>
-    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the schedule recurs.</param>
+    /// <param name="willSetSocketOn">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the schedule recurs.</param>
     /// <param name="weeklyRecurrence">Days of the week on which this schedule will recur every week.</param>
     /// <param name="timeBasis">The starting point to which <paramref name="time"/> is relative. Allows the schedule to recur based on the time of day, sunrise, or sunset.</param>
-    /// <param name="time">The period of time after <paramref name="timeBasis"/> at which to turn the outlet on or off each day the schedule recurs. Can be negative if the <paramref name="timeBasis"/> is <see cref="Basis.Sunrise"/> or <see cref="Basis.Sunset"/> to recur before sunrise or sunset instead of after.</param>
-    public Schedule(bool willSetOutletOn, IEnumerable<DayOfWeek>? weeklyRecurrence, Basis timeBasis, TimeSpan time) {
+    /// <param name="time">The period of time after <paramref name="timeBasis"/> at which to turn the socket on or off each day the schedule recurs. Can be negative if the <paramref name="timeBasis"/> is <see cref="Basis.Sunrise"/> or <see cref="Basis.Sunset"/> to recur before sunrise or sunset instead of after.</param>
+    public Schedule(bool willSetSocketOn, IEnumerable<DayOfWeek>? weeklyRecurrence, Basis timeBasis, TimeSpan time) {
         DaysOfWeek      = new HashSet<DayOfWeek>(weeklyRecurrence ?? Enumerable.Empty<DayOfWeek>());
         IsRecurring     = DaysOfWeek.Any();
-        WillSetOutletOn = willSetOutletOn;
+        WillSetSocketOn = willSetSocketOn;
         TimeBasis       = timeBasis;
         Time            = time;
     }
@@ -129,12 +141,12 @@ public struct Schedule {
     /// <summary>
     /// Construct a one-time, non-recurring schedule that will occur only once at a specific date and time.
     /// </summary>
-    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.</param>
-    /// <param name="singleOccurrence">The date and time at which the outlet will turn on or off.</param>
-    public Schedule(bool willSetOutletOn, DateTime singleOccurrence) {
+    /// <param name="willSetSocketOn">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.</param>
+    /// <param name="singleOccurrence">The date and time at which the socket will turn on or off.</param>
+    public Schedule(bool willSetSocketOn, DateTime singleOccurrence) {
         DaysOfWeek      = new HashSet<DayOfWeek>();
         IsRecurring     = false;
-        WillSetOutletOn = willSetOutletOn;
+        WillSetSocketOn = willSetSocketOn;
         TimeBasis       = Basis.StartOfDay;
         Date            = DateOnly.FromDateTime(singleOccurrence);
         Time            = singleOccurrence.TimeOfDay;
@@ -143,14 +155,14 @@ public struct Schedule {
     /// <summary>
     /// Construct a one-time, non-recurring schedule that will occur only once at a specific date and a specific period before or after sunrise or sunset.
     /// </summary>
-    /// <param name="willSetOutletOn">Whether to turn the outlet on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.</param>
-    /// <param name="singleOccurrence">The date on which the outlet will turn on or off.</param>
+    /// <param name="willSetSocketOn">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the schedule occurs.</param>
+    /// <param name="singleOccurrence">The date on which the socket will turn on or off.</param>
     /// <param name="timeBasis">The starting point to which <paramref name="time"/> is relative. Allows the schedule to occur based on the time of day, sunrise, or sunset.</param>
-    /// <param name="time">The period of time after <paramref name="timeBasis"/> at which to turn the outlet on or off. Can be negative if the <paramref name="timeBasis"/> is <see cref="Basis.Sunrise"/> or <see cref="Basis.Sunset"/> to occur before sunrise or sunset instead of after.</param>
-    public Schedule(bool willSetOutletOn, DateOnly singleOccurrence, Basis timeBasis, TimeSpan time) {
+    /// <param name="time">The period of time after <paramref name="timeBasis"/> at which to turn the socket on or off. Can be negative, if the <paramref name="timeBasis"/> is <see cref="Basis.Sunrise"/> or <see cref="Basis.Sunset"/>, to occur before sunrise or sunset instead of after.</param>
+    public Schedule(bool willSetSocketOn, DateOnly singleOccurrence, Basis timeBasis, TimeSpan time) {
         DaysOfWeek      = new HashSet<DayOfWeek>();
         IsRecurring     = false;
-        WillSetOutletOn = willSetOutletOn;
+        WillSetSocketOn = willSetSocketOn;
         TimeBasis       = timeBasis;
         Date            = singleOccurrence;
         Time            = time;

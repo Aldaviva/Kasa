@@ -8,6 +8,6 @@ internal readonly struct Socket {
 
     [JsonProperty("id")] public string Id { get; internal init; }
 
-    [JsonProperty("state")] public bool IsOutletOn { get; internal init; }
+    [JsonProperty("state")] public bool IsOn { get; internal init; }
 
 }

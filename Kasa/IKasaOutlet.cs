@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Kasa;
 
 /// <summary>
@@ -7,9 +9,9 @@ namespace Kasa;
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
-/// bool isOutletOn = await outlet.System.IsOutletOn();
-/// if (!isOutletOn) {
-///     await outlet.System.SetOutletOn(true);
+/// bool isSocketOn = await outlet.System.IsSocketOn();
+/// if (!isSocketOn) {
+///     await outlet.System.SetSocketOn(true);
 /// }</code>
 /// </summary>
 public interface IKasaOutletBase: IDisposable {
@@ -115,10 +117,10 @@ public interface IKasaOutletBase: IDisposable {
         Task SetName(string name);
 
         /// <summary>
-        /// <para>Count how many physical AC sockets this Kasa device has. This is not related to TCP socket connections.</para>
+        /// <para>Count how many physical AC sockets this Kasa device has. This is not related to TCP/IP socket connections.</para>
         /// <para>This only includes the main three-prong 15A AC NEMA 5-15-R sockets. It excludes all USB-A ports, such as those that appear on the KP303 or HS300 power strips, which are not individually switched.</para>
         /// </summary>
-        /// <returns>The number of AC sockets on this device. For <see cref="KasaOutlet"/> instances, this will always return 1. For <see cref="MultiSocketKasaOutlet"/> instances, this will always return a number greater than 1.</returns>
+        /// <returns>The number of AC sockets on this device, determined by actually querying the device, rather than the class. This means that if you construct an instance of single socket <see cref="KasaOutlet"/> with the hostname of a dual socket EP40 outlet, this will return 2 instead of 1, which indicates that you may want to dispose the <see cref="KasaOutlet"/> and construct a <see cref="MultiSocketKasaOutlet"/> to use with the EP40 instead.</returns>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
         Task<int> CountSockets();
@@ -150,11 +152,22 @@ public interface IKasaOutletBase: IDisposable {
             Task SetSocketOn(bool turnOn);
 
             /// <inheritdoc cref="IsSocketOn" />
-            [Obsolete($"This method was poorly named and has been renamed to {nameof(IsSocketOn)}", false)]
+            [Obsolete($"This method was poorly named, and has been renamed to {nameof(IsSocketOn)}", false)]
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            /*[CodeTemplate(searchTemplate: $"$this$.{nameof(IsOutletOn)}()",
+                Message = $"This method was poorly named, and has been renamed to {nameof(IsSocketOn)}",
+                ReplaceTemplate = $"$this$.{nameof(IsSocketOn)}()",
+                ReplaceMessage = $"Replace deprecated method call with {nameof(IsSocketOn)}")]*/
+            // [CodeTemplate] requires both the JETBRAINS_ANNOTATIONS compilation symbol and a dependency on the JetBrains.Annotations package, WITHOUT its PrivateAssets set to All
             Task<bool> IsOutletOn();
 
             /// <inheritdoc cref="SetSocketOn" />
-            [Obsolete($"This method was poorly named and has been renamed to {nameof(SetSocketOn)}", false)]
+            [Obsolete($"This method was poorly named, and has been renamed to {nameof(SetSocketOn)}", false)]
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            /*[CodeTemplate(searchTemplate: $"$this$.{nameof(SetOutletOn)}($args$)",
+                Message = $"This method was poorly named, and has been renamed to {nameof(SetSocketOn)}",
+                ReplaceTemplate = $"$this$.{nameof(SetSocketOn)}($args$)",
+                ReplaceMessage = $"Replace deprecated method call with {nameof(SetSocketOn)}")]*/
             Task SetOutletOn(bool turnOn);
 
         }
@@ -210,14 +223,6 @@ public interface IKasaOutletBase: IDisposable {
             /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
             /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
             Task SetName(int socketId, string name);
-
-            /// <inheritdoc cref="IsSocketOn" />
-            [Obsolete($"This method was poorly named and has been renamed to {nameof(IsSocketOn)}", false)]
-            Task<bool> IsOutletOn(int socketId);
-
-            /// <inheritdoc cref="SetSocketOn" />
-            [Obsolete($"This method was poorly named and has been renamed to {nameof(SetSocketOn)}", false)]
-            Task SetOutletOn(int socketId, bool turnOn);
 
         }
 
@@ -341,7 +346,7 @@ public interface IKasaOutletBase: IDisposable {
         /// </summary>
         /// <param name="duration">How long the timer should wait, since being started, before turning on or off.</param>
         /// <param name="setSocketOnWhenComplete">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
-        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
+        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetSocketOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
         /// <exception cref="FeatureUnavailable">If the device does not have a timer. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.Timer)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
         /// <exception cref="ResponseParsingException">if the JSON received from the outlet contained unexpected data</exception>
@@ -375,7 +380,7 @@ public interface IKasaOutletBase: IDisposable {
         /// <param name="duration">How long the timer should wait, since being started, before turning on or off.</param>
         /// <param name="setSocketOnWhenComplete">Whether to turn the socket on (<c>true</c>) or off (<c>false</c>) when the timer elapses.</param>
         /// <param name="socketId">The index, increasing from 0, of the socket on the device. For example, to specify the socket with the physical label "plug 1," pass 0 to this parameter.</param>
-        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetOutletOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
+        /// <returns>The created timer rule, which will have the same <see cref="Timer.TotalDuration"/> and <see cref="Timer.WillSetSocketOn"/> as the <paramref name="duration"/> and <paramref name="setSocketOnWhenComplete"/> you passed in, but with a populated <see cref="Timer.RemainingDuration"/>.</returns>
         /// <exception cref="ArgumentOutOfRangeException">if <paramref name="socketId"/> is less than 0 or greater than or equal to the number of sockets on this device</exception>
         /// <exception cref="FeatureUnavailable">If the device does not have a timer. To check this, you can call <c>(await kasaOutlet.System.GetInfo()).Features.Contains(Feature.Timer)</c>.</exception>
         /// <exception cref="NetworkException">if the TCP connection to the outlet failed and could not automatically reconnect</exception>
@@ -534,9 +539,9 @@ public interface IKasaOutletBase: IDisposable {
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
-/// bool isOutletOn = await outlet.System.IsOutletOn();
-/// if (!isOutletOn) {
-///     await outlet.System.SetOutletOn(true);
+/// bool isSocketOn = await outlet.System.IsSocketOn();
+/// if (!isSocketOn) {
+///     await outlet.System.SetSocketOn(true);
 /// }</code>
 /// </summary>
 public interface IKasaOutlet: IKasaOutletBase {
@@ -570,9 +575,9 @@ public interface IKasaOutlet: IKasaOutletBase {
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="MultiSocketKasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IMultiSocketKasaOutlet outlet = new MultiSocketKasaOutlet("192.168.1.100");
-/// bool isOutletOn = await outlet.System.IsOutletOn(0);
-/// if (!isOutletOn) {
-///     await outlet.System.SetOutletOn(0, true);
+/// bool isSocketOn = await outlet.System.IsSocketOn(0);
+/// if (!isSocketOn) {
+///     await outlet.System.SetSocketOn(0, true);
 /// }</code>
 /// </summary>
 public interface IMultiSocketKasaOutlet: IKasaOutletBase {

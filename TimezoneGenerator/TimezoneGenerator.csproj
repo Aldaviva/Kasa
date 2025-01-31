@@ -14,12 +14,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="KasaAppAssets\timezone_fwindex.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="KasaAppAssets\timezone_id.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
+        <None Update="KasaAppAssets\timezone_fwindex.json" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="KasaAppAssets\timezone_id.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

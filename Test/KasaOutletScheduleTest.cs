@@ -16,31 +16,31 @@ public class KasaOutletScheduleTest: AbstractKasaOutletTest {
         actual[0].TimeBasis.Should().Be(Schedule.Basis.StartOfDay);
         actual[0].Time.Should().Be(TimeSpan.FromHours(3).Add(TimeSpan.FromMinutes(15)));
         actual[0].Date.Should().BeNull();
-        actual[0].DaysOfWeek.Should().BeEquivalentTo(new HashSet<DayOfWeek> { DayOfWeek.Sunday, DayOfWeek.Monday });
+        actual[0].DaysOfWeek.Should().BeEquivalentTo((HashSet<DayOfWeek>) [DayOfWeek.Sunday, DayOfWeek.Monday]);
         actual[0].IsEnabled.Should().BeTrue();
         actual[0].Name.Should().Be("Schedule Rule");
         actual[0].IsRecurring.Should().BeTrue();
-        actual[0].WillSetOutletOn.Should().BeTrue();
+        actual[0].WillSetSocketOn.Should().BeTrue();
 
         actual[1].Id.Should().Be("901F46B4FFC33957D2A5383F2F83BDE0");
         actual[1].TimeBasis.Should().Be(Schedule.Basis.Sunrise);
         actual[1].Time.Should().Be(TimeSpan.FromMinutes(5));
         actual[1].Date.Should().BeNull();
-        actual[1].DaysOfWeek.Should().BeEquivalentTo(new HashSet<DayOfWeek> { DayOfWeek.Tuesday, DayOfWeek.Wednesday });
+        actual[1].DaysOfWeek.Should().BeEquivalentTo((HashSet<DayOfWeek>) [DayOfWeek.Tuesday, DayOfWeek.Wednesday]);
         actual[1].IsEnabled.Should().BeTrue();
         actual[1].Name.Should().Be("Schedule Rule");
         actual[1].IsRecurring.Should().BeTrue();
-        actual[1].WillSetOutletOn.Should().BeFalse();
+        actual[1].WillSetSocketOn.Should().BeFalse();
 
         actual[2].Id.Should().Be("13B98EDB80160333AF59C23B73036378");
         actual[2].TimeBasis.Should().Be(Schedule.Basis.Sunset);
         actual[2].Time.Should().Be(TimeSpan.FromMinutes(10).Negate());
         actual[2].Date.Should().BeNull();
-        actual[2].DaysOfWeek.Should().BeEquivalentTo(new HashSet<DayOfWeek> { DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday });
+        actual[2].DaysOfWeek.Should().BeEquivalentTo((HashSet<DayOfWeek>) [DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday]);
         actual[2].IsEnabled.Should().BeFalse();
         actual[2].Name.Should().Be("Schedule Rule");
         actual[2].IsRecurring.Should().BeTrue();
-        actual[2].WillSetOutletOn.Should().BeTrue();
+        actual[2].WillSetSocketOn.Should().BeTrue();
     }
 
     [Fact]
@@ -54,11 +54,11 @@ public class KasaOutletScheduleTest: AbstractKasaOutletTest {
         actual.TimeBasis.Should().Be(Schedule.Basis.StartOfDay);
         actual.Time.Should().Be(TimeSpan.FromHours(12 + 7).Add(TimeSpan.FromMinutes(45)));
         actual.Date.Should().BeNull();
-        actual.DaysOfWeek.Should().BeEquivalentTo(new HashSet<DayOfWeek> { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday });
+        actual.DaysOfWeek.Should().BeEquivalentTo((HashSet<DayOfWeek>) [DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday]);
         actual.IsEnabled.Should().BeTrue();
         actual.Name.Should().Be("Schedule Rule");
         actual.IsRecurring.Should().BeTrue();
-        actual.WillSetOutletOn.Should().BeTrue();
+        actual.WillSetSocketOn.Should().BeTrue();
     }
 
     [Fact]
@@ -73,11 +73,11 @@ public class KasaOutletScheduleTest: AbstractKasaOutletTest {
         actual.TimeBasis.Should().Be(Schedule.Basis.StartOfDay);
         actual.Time.Should().Be(TimeSpan.FromHours(12 + 7).Add(TimeSpan.FromMinutes(45)));
         actual.Date.Should().BeNull();
-        actual.DaysOfWeek.Should().BeEquivalentTo(new HashSet<DayOfWeek> { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday });
+        actual.DaysOfWeek.Should().BeEquivalentTo((HashSet<DayOfWeek>) [DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday]);
         actual.IsEnabled.Should().BeFalse();
         actual.Name.Should().Be("Schedule Rule");
         actual.IsRecurring.Should().BeTrue();
-        actual.WillSetOutletOn.Should().BeTrue();
+        actual.WillSetSocketOn.Should().BeTrue();
     }
 
     [Fact]
@@ -118,14 +118,14 @@ public class KasaOutletScheduleTest: AbstractKasaOutletTest {
         schedule.IsRecurring.Should().BeTrue();
         schedule.TimeBasis.Should().Be(Schedule.Basis.Sunset);
         schedule.Time.Should().Be(TimeSpan.FromMinutes(5));
-        schedule.WillSetOutletOn.Should().BeTrue();
+        schedule.WillSetSocketOn.Should().BeTrue();
         schedule.Date.Should().BeNull();
     }
 
     [Fact]
     public void NonRepeating() {
         IEnumerable<Schedule> schedules = [
-            new(true, Array.Empty<DayOfWeek>(), new TimeOnly(3, 52)) {
+            new(true, [], new TimeOnly(3, 52)) {
                 IsRecurring = false,
                 Date        = new DateOnly(2022, 7, 3)
             },
@@ -136,7 +136,7 @@ public class KasaOutletScheduleTest: AbstractKasaOutletTest {
             schedule.IsRecurring.Should().BeFalse();
             schedule.TimeBasis.Should().Be(Schedule.Basis.StartOfDay);
             schedule.Time.Should().Be(TimeSpan.FromHours(3).Add(TimeSpan.FromMinutes(52)));
-            schedule.WillSetOutletOn.Should().BeTrue();
+            schedule.WillSetSocketOn.Should().BeTrue();
             schedule.Date.Should().Be(new DateOnly(2022, 7, 3));
         }
     }

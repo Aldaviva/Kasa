@@ -26,9 +26,9 @@ public partial class KasaOutlet {
 
     /// <exception cref="NetworkException"></exception>
     /// <exception cref="ResponseParsingException"></exception>
-    internal async Task<Timer> StartTimer(TimeSpan duration, bool setOutletOnWhenComplete, SocketContext? context) {
+    internal async Task<Timer> StartTimer(TimeSpan duration, bool setSocketOnWhenComplete, SocketContext? context) {
         await ClearTimers(context).ConfigureAwait(false);
-        Timer timer = new(duration, setOutletOnWhenComplete);
+        Timer timer = new(duration, setSocketOnWhenComplete);
         await _client.Send<JObject>(CommandFamily.Timer, "add_rule", timer, context).ConfigureAwait(false);
         return (await GetTimer(context).ConfigureAwait(false))!.Value;
     }

@@ -56,9 +56,54 @@ public class AsyncLazyTest: IDisposable {
         _initializations.Should().Be(1);
     }
 
+    [Fact]
+    public async Task DisposesInnerValue() {
+        var              asyncLazy  = new AsyncLazy<MySyncDisposable>(() => ValueTask.FromResult(new MySyncDisposable()));
+        MySyncDisposable disposable = await asyncLazy.GetValue();
+        disposable.Disposed.Should().BeFalse();
+
+        // ReSharper disable once MethodHasAsyncOverload - testing both implementations
+        asyncLazy.Dispose();
+        await asyncLazy.DisposeAsync();
+
+        disposable.Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AsyncDisposesInnerValue() {
+        var               asyncLazy  = new AsyncLazy<MyAsyncDisposable>(() => ValueTask.FromResult(new MyAsyncDisposable()));
+        MyAsyncDisposable disposable = await asyncLazy.GetValue();
+        disposable.Disposed.Should().BeFalse();
+
+        await asyncLazy.DisposeAsync();
+
+        disposable.Disposed.Should().BeTrue();
+    }
+
     public void Dispose() {
         _asyncLazy.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private class MySyncDisposable: IDisposable {
+
+        public volatile bool Disposed;
+
+        public void Dispose() {
+            Disposed = true;
+        }
+
+    }
+
+    private class MyAsyncDisposable: IAsyncDisposable {
+
+        public volatile bool Disposed;
+
+        public ValueTask DisposeAsync() {
+            Disposed = true;
+            return ValueTask.CompletedTask;
+        }
+
     }
 
 }

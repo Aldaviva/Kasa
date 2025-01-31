@@ -10,7 +10,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     [InlineData(false)]
     public async Task IsOutletOn(bool expected) {
         A.CallTo(() => Client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
-            IsOutletOn = expected
+            IsSocketOn = expected
         });
 
         bool actual = await Outlet.System.IsSocketOn();
@@ -91,7 +91,7 @@ public class KasaOutletSystemTest: AbstractKasaOutletTest {
     }
 
     [Fact]
-    public async Task CountOutlets() {
+    public async Task CountSockets() {
         (await Outlet.System.CountSockets()).Should().Be(1);
     }
 

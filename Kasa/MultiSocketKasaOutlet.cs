@@ -8,9 +8,9 @@ namespace Kasa;
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="MultiSocketKasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IMultiSocketKasaOutlet outlet = new MultiSocketKasaOutlet("192.168.1.100");
-/// bool isOutletOn = await outlet.System.IsOutletOn(0);
-/// if (!isOutletOn) {
-///     await outlet.System.SetOutletOn(0, true);
+/// bool isSocketOn = await outlet.System.IsSocketOn(0);
+/// if (!isSocketOn) {
+///     await outlet.System.SetSocketOn(0, true);
 /// }</code>
 /// </summary>
 public class MultiSocketKasaOutlet: KasaOutlet, IMultiSocketKasaOutlet, IKasaOutletBase.ISystemCommands.IMultiSocket, IKasaOutletBase.ITimerCommandsMultiSocket,
@@ -65,7 +65,7 @@ public class MultiSocketKasaOutlet: KasaOutlet, IMultiSocketKasaOutlet, IKasaOut
     async Task<bool> IKasaOutletBase.ISystemCommands.IMultiSocket.IsSocketOn(int socketId) {
         Socket socket = (await System.GetInfo().ConfigureAwait(false)).Sockets?.ElementAt(socketId)
             ?? throw new ArgumentOutOfRangeException(nameof(socketId), socketId, "Kasa outlet does not have multiple sockets");
-        return socket.IsOutletOn;
+        return socket.IsOn;
     }
 
     /// <inheritdoc />
@@ -142,11 +142,5 @@ public class MultiSocketKasaOutlet: KasaOutlet, IMultiSocketKasaOutlet, IKasaOut
         }
         base.Dispose(disposing);
     }
-
-    /// <inheritdoc />
-    Task<bool> IKasaOutletBase.ISystemCommands.IMultiSocket.IsOutletOn(int socketId) => System.IsSocketOn(socketId);
-
-    /// <inheritdoc />
-    Task IKasaOutletBase.ISystemCommands.IMultiSocket.SetOutletOn(int socketId, bool turnOn) => System.SetSocketOn(socketId, turnOn);
 
 }

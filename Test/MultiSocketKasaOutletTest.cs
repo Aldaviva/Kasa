@@ -15,16 +15,17 @@ public class SocketMultiSocketKasaOutletTest: IDisposable {
         A.CallTo(() => _client.Send<SystemInfo>(CommandFamily.System, "get_sysinfo", null, null)).Returns(new SystemInfo {
             Sockets = [
                 new Socket {
-                    Id         = "800648C61B22DD1DE8AFD8858B29192022087E7200",
-                    IsOutletOn = false,
-                    Name       = "Outlet 1"
+                    Id   = "800648C61B22DD1DE8AFD8858B29192022087E7200",
+                    IsOn = false,
+                    Name = "Outlet 1"
                 },
                 new Socket {
-                    Id         = "800648C61B22DD1DE8AFD8858B29192022087E7201",
-                    IsOutletOn = true,
-                    Name       = "Outlet 2"
+                    Id   = "800648C61B22DD1DE8AFD8858B29192022087E7201",
+                    IsOn = true,
+                    Name = "Outlet 2"
                 }
             ],
+            SocketCount            = 2,
             DeviceId               = "800648C61B22DD1DE8AFD8858B29192022087E72",
             Features               = new HashSet<Feature>([Feature.Timer]),
             HardwareId             = "B3B7B05B758C3EDA8F9C69FECDBA2111",
@@ -52,7 +53,7 @@ public class SocketMultiSocketKasaOutletTest: IDisposable {
     }
 
     [Fact]
-    public async Task IsOutletOn() {
+    public async Task IsSocketOn() {
         (await _ep40.System.IsSocketOn(0)).Should().BeFalse();
         (await _ep40.System.IsSocketOn(1)).Should().BeTrue();
 
@@ -60,7 +61,7 @@ public class SocketMultiSocketKasaOutletTest: IDisposable {
     }
 
     [Fact]
-    public async Task SetOutletOn() {
+    public async Task SetSocketOn() {
         A.CallTo(() => _client.Send<JObject>(CommandFamily.System, "set_relay_state", A<object?>._, A<object?>._)).Returns(JObject.Parse("""{"set_relay_state":{"err_code":0}}"""));
 
         await _ep40.System.SetSocketOn(0, false);
@@ -92,6 +93,11 @@ public class SocketMultiSocketKasaOutletTest: IDisposable {
         a.Should().Be(b);
         a.GetHashCode().Should().Be(b.GetHashCode());
         a.ToString().Should().Be("socketId: 800648C61B22DD1DE8AFD8858B29192022087E7200");
+    }
+
+    [Fact]
+    public void PublicConstructor() {
+        new MultiSocketKasaOutlet("1.2.3.4").Dispose();
     }
 
     public void Dispose() {

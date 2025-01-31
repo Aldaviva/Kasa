@@ -289,7 +289,7 @@ public class KasaClientTest {
         }
 
         Reference<TcpClient?> tcpServerSocket = new();
-        server.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
+        server!.AcceptTcpClientAsync().ContinueWith(task => tcpServerSocket.Value = task.Result);
         KasaClient kasaClient = new("localhost") { Port = serverPort!.Value };
         return (server, serverPort.Value, tcpServerSocket, kasaClient);
     }
@@ -339,11 +339,9 @@ public class KasaClientTest {
 
 }
 
-internal class TestableKasaClient: KasaClient {
+internal class TestableKasaClient(string hostname): KasaClient(hostname) {
 
     private readonly Stream _networkStream = A.Fake<Stream>();
-
-    public TestableKasaClient(string hostname): base(hostname) { }
 
     protected internal override Task EnsureConnected(bool forceReconnect = false) {
         // we're not actually connected during most tests, so don't throw

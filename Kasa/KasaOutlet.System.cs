@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Kasa;
 
@@ -10,7 +11,7 @@ public partial class KasaOutlet {
     /// <inheritdoc />
     async Task<bool> IKasaOutletBase.ISystemCommands.ISingleSocket.IsSocketOn() {
         SystemInfo systemInfo = await ((IKasaOutletBase.ISystemCommands) this).GetInfo().ConfigureAwait(false);
-        return systemInfo.IsOutletOn;
+        return systemInfo.IsSocketOn;
     }
 
     /// <inheritdoc />
@@ -64,18 +65,18 @@ public partial class KasaOutlet {
     }
 
     /// <inheritdoc />
-    Task<int> IKasaOutletBase.ISystemCommands.CountSockets() {
-        return Task.FromResult(1);
+    async Task<int> IKasaOutletBase.ISystemCommands.CountSockets() {
+        return (await GetInfo().ConfigureAwait(false)).SocketCount ?? 1;
     }
 
     /// <inheritdoc />
-    Task<bool> IKasaOutletBase.ISystemCommands.ISingleSocket.IsOutletOn() {
-        return System.IsSocketOn();
-    }
+    [Obsolete($"This method was poorly named, and has been renamed to {nameof(System.IsSocketOn)}", false)]
+    [ExcludeFromCodeCoverage]
+    Task<bool> IKasaOutletBase.ISystemCommands.ISingleSocket.IsOutletOn() => System.IsSocketOn();
 
     /// <inheritdoc />
-    Task IKasaOutletBase.ISystemCommands.ISingleSocket.SetOutletOn(bool turnOn) {
-        return System.SetSocketOn(turnOn);
-    }
+    [Obsolete($"This method was poorly named, and has been renamed to {nameof(System.SetSocketOn)}", false)]
+    [ExcludeFromCodeCoverage]
+    Task IKasaOutletBase.ISystemCommands.ISingleSocket.SetOutletOn(bool turnOn) => System.SetSocketOn(turnOn);
 
 }

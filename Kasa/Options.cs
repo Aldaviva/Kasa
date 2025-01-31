@@ -1,6 +1,6 @@
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
 
 namespace Kasa;
 
@@ -98,8 +98,6 @@ public class Options: INotifyPropertyChanged {
         }
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
 }

@@ -8,9 +8,9 @@ namespace Kasa;
 /// <para>To communicate with multiple Kasa devices, construct multiple <see cref="KasaOutlet"/> instances, one per device.</para>
 /// <para>Example usage:</para>
 /// <code>using IKasaOutlet outlet = new KasaOutlet("192.168.1.100");
-/// bool isOutletOn = await outlet.System.IsOutletOn();
-/// if(!isOutletOn){
-///     await outlet.System.SetOutletOn(true);
+/// bool isSocketOn = await outlet.System.IsSocketOn();
+/// if(!isSocketOn){
+///     await outlet.System.SetSocketOn(true);
 /// }</code>
 /// </summary>
 public partial class KasaOutlet: IKasaOutlet, IKasaOutletBase.ISystemCommands.ISingleSocket, IKasaOutletBase.ITimeCommands, IKasaOutletBase.IEnergyMeterCommands,

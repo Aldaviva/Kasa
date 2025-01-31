@@ -5,7 +5,7 @@ namespace Kasa;
 /// </summary>
 /// <typeparam name="T">type of the value to store</typeparam>
 /// <param name="valueFactory">generator for the value, can be asynchronous</param>
-internal class AsyncLazy<T>(Func<ValueTask<T>> valueFactory): IDisposable {
+internal class AsyncLazy<T>(Func<ValueTask<T>> valueFactory): IDisposable, IAsyncDisposable {
 
     private readonly SemaphoreSlim _mutex = new(1);
 
@@ -50,8 +50,22 @@ internal class AsyncLazy<T>(Func<ValueTask<T>> valueFactory): IDisposable {
 
     public void Dispose() {
         _mutex.Dispose();
-        if (IsValueCreated && _value is IDisposable disposableValue) {
-            disposableValue.Dispose();
+        if (IsValueCreated && _value is IDisposable value) {
+            value.Dispose();
+        }
+    }
+
+    public async ValueTask DisposeAsync() {
+        _mutex.Dispose();
+        if (IsValueCreated) {
+            switch (_value) {
+                case IAsyncDisposable value:
+                    await value.DisposeAsync().ConfigureAwait(false);
+                    break;
+                case IDisposable value:
+                    value.Dispose();
+                    break;
+            }
         }
     }
 
