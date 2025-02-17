@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>1.1.0-beta3</Version>
+        <Version>1.1.0</Version>
         <Title>Kasa</Title>
         <PackageId>Kasa</PackageId>
         <Product>Kasa</Product>
@@ -30,7 +30,6 @@
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <NoWarn>$(NoWarn),1701,1702</NoWarn>
-        <!--<DefineConstants>$(DefineConstants);JETBRAINS_ANNOTATIONS</DefineConstants>--><!-- Required for [CodeTemplate] to be exposed to dependents (undocumented) -->
     </PropertyGroup>
 
     <ItemGroup>
@@ -39,8 +38,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!--<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />--><!-- setting PrivateAssets to All breaks anything that tries to load ISystemCommands.ISingleSocket, which uses CodeTemplate -->
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" /><!-- Do not upgrade because version 9 bitches about targeting net6.0, and setting a max version breaks dependents with a higher version -->
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" /><!-- Do not upgrade because version 9 bitches about targeting net6.0, and setting a max version breaks dependents with a higher version -->
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>

@@ -154,20 +154,11 @@ public interface IKasaOutletBase: IDisposable {
             /// <inheritdoc cref="IsSocketOn" />
             [Obsolete($"This method was poorly named, and has been renamed to {nameof(IsSocketOn)}", false)]
             [EditorBrowsable(EditorBrowsableState.Never)]
-            /*[CodeTemplate(searchTemplate: $"$this$.{nameof(IsOutletOn)}()",
-                Message = $"This method was poorly named, and has been renamed to {nameof(IsSocketOn)}",
-                ReplaceTemplate = $"$this$.{nameof(IsSocketOn)}()",
-                ReplaceMessage = $"Replace deprecated method call with {nameof(IsSocketOn)}")]*/
-            // [CodeTemplate] requires both the JETBRAINS_ANNOTATIONS compilation symbol and a dependency on the JetBrains.Annotations package, WITHOUT its PrivateAssets set to All
             Task<bool> IsOutletOn();
 
             /// <inheritdoc cref="SetSocketOn" />
             [Obsolete($"This method was poorly named, and has been renamed to {nameof(SetSocketOn)}", false)]
             [EditorBrowsable(EditorBrowsableState.Never)]
-            /*[CodeTemplate(searchTemplate: $"$this$.{nameof(SetOutletOn)}($args$)",
-                Message = $"This method was poorly named, and has been renamed to {nameof(SetSocketOn)}",
-                ReplaceTemplate = $"$this$.{nameof(SetSocketOn)}($args$)",
-                ReplaceMessage = $"Replace deprecated method call with {nameof(SetSocketOn)}")]*/
             Task SetOutletOn(bool turnOn);
 
         }
